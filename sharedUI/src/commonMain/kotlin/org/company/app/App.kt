@@ -2,7 +2,7 @@ package org.company.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import org.company.app.feature.hello.presentation.HelloScreen
+import org.company.app.navigation.AppNavHost
 import org.company.app.theme.AppTheme
 
 /**
@@ -16,5 +16,5 @@ import org.company.app.theme.AppTheme
 fun App(
     onThemeChanged: @Composable (isDark: Boolean) -> Unit = {},
 ) = AppTheme(onThemeChanged) {
-    HelloScreen()
+    AppNavHost()
 }

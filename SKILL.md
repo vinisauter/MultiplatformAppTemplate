@@ -31,7 +31,7 @@ These prompts are battle-tested templates. Paste into **GitHub Copilot Chat** in
 ## 5. Add a Compose screen with Nav3 destination
 
 ```
-@workspace Create a Composable screen [NAME]Screen in presentation/ that observes [NAME]ViewModel.uiState via collectAsStateWithLifecycle(). Add a Nav3 NavKey [NAME]Route and register it in the NavDisplay graph. Pass events to viewModel.handleEvent(...).
+@workspace Add a new feature [NAME] with full Clean Architecture slice (domain/data/presentation). In sharedUI/src/commonMain/kotlin/<package>/navigation/AppRoute.kt, add a `@Serializable` variant `data class [NAME](...)` (or `data object` for argument-free routes) to the `AppRoute` sealed interface. In AppNavHost.kt, register an `entry<AppRoute.[NAME]> { key -> [NAME]Screen(... onBack = { backStack.removeLastOrNull() }) }` block. The screen must observe its ViewModel.uiState via collectAsState(), pass events through viewModel.handleEvent(...), and obtain the ViewModel via koinViewModel { parametersOf(key.arg) } if it takes route arguments. Register the new bindings in di/Modules.kt.
 ```
 
 ## 6. Refactor for Clean Architecture violation

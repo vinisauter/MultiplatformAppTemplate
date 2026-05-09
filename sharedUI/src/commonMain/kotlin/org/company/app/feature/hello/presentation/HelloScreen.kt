@@ -29,12 +29,14 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun HelloScreen(
+    onNavigateToDetail: (id: String) -> Unit = {},
     viewModel: HelloViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     HelloContent(
         state = state,
         onEvent = viewModel::handleEvent,
+        onNavigateToDetail = onNavigateToDetail,
     )
 }
 
@@ -42,6 +44,7 @@ fun HelloScreen(
 private fun HelloContent(
     state: HelloUiState,
     onEvent: (HelloUiEvent) -> Unit,
+    onNavigateToDetail: (id: String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -71,6 +74,9 @@ private fun HelloContent(
         Button(onClick = { onEvent(HelloUiEvent.Refresh) }) {
             Text("Refresh")
         }
+
+        Button(onClick = { onNavigateToDetail("42") }) {
+            Text("Open detail #42")
+        }
     }
 }
-
