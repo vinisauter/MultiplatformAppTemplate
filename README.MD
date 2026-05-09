@@ -35,99 +35,68 @@ You have **two equivalent ways** to initialize a new project from this template 
 
 If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and **automatically chains into `team.install`** at the end.
 
-#### Step 1 — Get the code
+The single block below clones the template, detaches its history, points the remote at *your* repository, runs the init script, and pushes the first commit. Replace `my-app`, `ImoBull`, `com.acme.app`, and the remote URL with your own values. The `INCLUDE_*` flags are toggled to whatever you want to keep.
 
-Pick one of the two flows below.
+> 💡 If you prefer to **rewrite** the template's history instead of dropping it (so blame still points at the template authors), replace `rm -rf .git && git init -b main` with [`git filter-repo --force`](https://github.com/newren/git-filter-repo) (or, on systems without it, `git filter-branch --force --prune-empty --commit-filter '...'`). For most users, dropping the history is simpler and is what's shown below.
 
-**Flow 1 — Use this template + clone your new repo (recommended).** First click **"Use this template" → Create a new repository** on GitHub (skip running the Actions workflow), then clone *your* repo locally:
-
-```bash
-# Replace <you>/<your-new-repo> with the repo you just created.
-git clone https://github.com/<you>/<your-new-repo>.git my-app
-cd my-app
-```
-
-```powershell
-git clone https://github.com/<you>/<your-new-repo>.git my-app
-Set-Location my-app
-```
-
-**Flow 2 — Clone the template directly and re-point origin.** Use this when you don't want a fork on GitHub yet, or you're targeting a different host (GitLab, Gitea, etc.):
+#### macOS / Linux
 
 ```bash
+# 1. Clone, detach history, repoint origin.
 git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
 cd my-app
-rm -rf .git                                  # detach the template's history
+rm -rf .git
 git init -b main
-# Optional: point at your own remote when ready.
-# git remote add origin git@github.com:<you>/<your-new-repo>.git
-```
+git remote add origin git@github.com:<you>/<your-new-repo>.git
 
-```powershell
-git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
-Set-Location my-app
-Remove-Item -Recurse -Force .git              # detach the template's history
-git init -b main
-# Optional: point at your own remote when ready.
-# git remote add origin git@github.com:<you>/<your-new-repo>.git
-```
-
-#### Step 2 — Run the init script
-
-The script accepts arguments for non-interactive runs, **or prompts interactively** when any are omitted. It validates inputs, rewrites placeholders (`{{PROJECT_NAME}}`, `{{PACKAGE_NAME}}`, `{{PACKAGE_PATH}}`), renames the Kotlin source directories `org/company/app` → your dotted package, prunes unselected platforms via `// region <plat>` markers, writes `.template.config`, then **automatically runs `team.install`** (Git hooks + environment validation).
-
-**macOS / Linux**
-
-```bash
+# 2. Make the scripts executable (Git on macOS/Linux preserves the bit, but a fresh
+#    download via ZIP/Windows clone may strip it).
 chmod +x scripts/init.sh scripts/team.install.sh scripts/hooks/*.sh
+
+# 3. Run init (validates inputs, rewrites placeholders, prunes platforms,
+#    writes .template.config, then chains into scripts/team.install.sh).
 bash scripts/init.sh \
   --project-name "ImoBull" \
   --package-name "com.acme.app" \
   --android true --ios true --web true --desktop true
+
+# 4. Commit + push.
+git add -A
+git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
+git push -u origin main
+
+# 5. Open in Android Studio (optional).
+open -a "Android Studio" .
 ```
 
-Or interactively: `bash scripts/init.sh`
-
-**Windows (Windows PowerShell 5.1 or PowerShell 7+)**
+#### Windows (Windows PowerShell 5.1 or PowerShell 7+)
 
 ```powershell
+# 1. Clone, detach history, repoint origin.
+git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
+Set-Location my-app
+Remove-Item -Recurse -Force .git
+git init -b main
+git remote add origin git@github.com:<you>/<your-new-repo>.git
+
+# 2. Run init (validates inputs, rewrites placeholders, prunes platforms,
+#    writes .template.config, then chains into scripts\team.install.ps1).
 powershell -File scripts/init.ps1 `
   -ProjectName "ImoBull" `
   -PackageName "com.acme.app" `
   -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
-```
 
-Or interactively: `powershell -File scripts/init.ps1`
-
-> When the script finishes, it self-deletes (`scripts/init.sh`, `scripts/init.ps1`, and `.github/workflows/init.yml`). The repo is now committed-clean — only your tracked-but-modified files remain.
-
-#### Step 3 — Initial commit + push
-
-```bash
-git add -A
-git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
-git push -u origin main      # or master, depending on your default branch
-```
-
-```powershell
+# 3. Commit + push.
 git add -A
 git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
 git push -u origin main
-```
 
-#### Step 4 — Open in Android Studio
-
-```bash
-# macOS
-open -a "Android Studio" .
-```
-
-```powershell
-# Windows
+# 4. Open in Android Studio (optional).
 Start-Process "studio64.exe" -ArgumentList (Get-Location).Path
 ```
 
-The first sync will download Gradle dependencies. From here, follow the **▶️ Run locally** section below for each platform you kept.
+> Drop the script arguments to run interactively (you'll be prompted for each value).
+> When the script finishes, it self-deletes (`scripts/init.sh`, `scripts/init.ps1`, and `.github/workflows/init.yml`).
 
 ## 🛠️ Post-clone bootstrap
 
