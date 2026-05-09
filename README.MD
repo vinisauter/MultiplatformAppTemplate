@@ -9,6 +9,10 @@ A **GitHub Template Repository** for production-grade Kotlin Multiplatform apps 
 
 ## 🚀 Use this template
 
+You have **two equivalent ways** to initialize a new project from this template — both delegate to the same logic in [`scripts/init.sh`](scripts/init.sh), so behavior is identical.
+
+### Option A — GitHub Actions (no local clone required)
+
 1. Click **"Use this template" → Create a new repository** on GitHub.
 2. In the new repo, open **Actions → `Initialize KMP Project Template` → Run workflow**.
 3. Fill the inputs:
@@ -22,10 +26,33 @@ A **GitHub Template Repository** for production-grade Kotlin Multiplatform apps 
    | `include_web`     | Keep the `:webApp` module + JS/WasmJS targets.                                       |
    | `include_desktop` | Keep the `:desktopApp` module + JVM target.                                          |
 
-4. The workflow rewrites all placeholders, deletes any unselected platforms via `// region <plat>` markers, writes `.template.config`, then self-destructs.
+4. The workflow runs `scripts/init.sh --skip-install` with your inputs (the script rewrites placeholders, prunes any unselected platform via `// region <plat>` markers, writes `.template.config`, and self-destructs `init.yml` + the `init.{sh,ps1}` scripts), then commits and pushes the result.
 5. Pull the resulting commit locally and run the onboarding script (next section).
 
-> ⚠️ At least one platform checkbox must be enabled. The workflow validates inputs and fails fast otherwise.
+> ⚠️ At least one platform checkbox must be enabled. The script validates inputs and fails fast otherwise.
+
+### Option B — Local script (no GitHub Actions minutes consumed)
+
+If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and **automatically chains into `team.install`** at the end.
+
+- **macOS / Linux:** `bash scripts/init.sh`
+- **Windows (Windows PowerShell 5.1 or PowerShell 7+):** `powershell -File scripts/init.ps1` (or `pwsh -File scripts/init.ps1`)
+
+Both scripts accept arguments for non-interactive runs:
+
+```bash
+bash scripts/init.sh \
+  --project-name "ImoBull" \
+  --package-name "com.acme.app" \
+  --android true --ios true --web true --desktop true
+```
+
+```powershell
+pwsh scripts/init.ps1 -ProjectName "ImoBull" -PackageName "com.acme.app" `
+    -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
+```
+
+When finished, the scripts self-destruct (`init.sh` / `init.ps1` and `.github/workflows/init.yml`), commit-ready.
 
 ## 🛠️ Post-clone bootstrap
 
