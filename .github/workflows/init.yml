@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       project_name:
-        description: 'Human-readable project name (e.g. ImoBull, Nanie)'
+        description: 'Human-readable project name (e.g. Multiplatform Template App)'
         required: true
         type: string
       package_name:
-        description: 'Root Kotlin package (dotted, e.g. com.acme.app)'
+        description: 'Root Kotlin package (dotted, e.g. com.template.app)'
         required: true
         type: string
       include_android:
