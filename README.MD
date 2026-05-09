@@ -35,24 +35,99 @@ You have **two equivalent ways** to initialize a new project from this template 
 
 If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and **automatically chains into `team.install`** at the end.
 
-- **macOS / Linux:** `bash scripts/init.sh`
-- **Windows (Windows PowerShell 5.1 or PowerShell 7+):** `powershell -File scripts/init.ps1` (or `pwsh -File scripts/init.ps1`)
+#### Step 1 — Get the code
 
-Both scripts accept arguments for non-interactive runs:
+Pick one of the two flows below.
+
+**Flow 1 — Use this template + clone your new repo (recommended).** First click **"Use this template" → Create a new repository** on GitHub (skip running the Actions workflow), then clone *your* repo locally:
 
 ```bash
+# Replace <you>/<your-new-repo> with the repo you just created.
+git clone https://github.com/<you>/<your-new-repo>.git my-app
+cd my-app
+```
+
+```powershell
+git clone https://github.com/<you>/<your-new-repo>.git my-app
+Set-Location my-app
+```
+
+**Flow 2 — Clone the template directly and re-point origin.** Use this when you don't want a fork on GitHub yet, or you're targeting a different host (GitLab, Gitea, etc.):
+
+```bash
+git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
+cd my-app
+rm -rf .git                                  # detach the template's history
+git init -b main
+# Optional: point at your own remote when ready.
+# git remote add origin git@github.com:<you>/<your-new-repo>.git
+```
+
+```powershell
+git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
+Set-Location my-app
+Remove-Item -Recurse -Force .git              # detach the template's history
+git init -b main
+# Optional: point at your own remote when ready.
+# git remote add origin git@github.com:<you>/<your-new-repo>.git
+```
+
+#### Step 2 — Run the init script
+
+The script accepts arguments for non-interactive runs, **or prompts interactively** when any are omitted. It validates inputs, rewrites placeholders (`{{PROJECT_NAME}}`, `{{PACKAGE_NAME}}`, `{{PACKAGE_PATH}}`), renames the Kotlin source directories `org/company/app` → your dotted package, prunes unselected platforms via `// region <plat>` markers, writes `.template.config`, then **automatically runs `team.install`** (Git hooks + environment validation).
+
+**macOS / Linux**
+
+```bash
+chmod +x scripts/init.sh scripts/team.install.sh scripts/hooks/*.sh
 bash scripts/init.sh \
   --project-name "ImoBull" \
   --package-name "com.acme.app" \
   --android true --ios true --web true --desktop true
 ```
 
+Or interactively: `bash scripts/init.sh`
+
+**Windows (Windows PowerShell 5.1 or PowerShell 7+)**
+
 ```powershell
-pwsh scripts/init.ps1 -ProjectName "ImoBull" -PackageName "com.acme.app" `
-    -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
+powershell -File scripts/init.ps1 `
+  -ProjectName "ImoBull" `
+  -PackageName "com.acme.app" `
+  -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
 ```
 
-When finished, the scripts self-destruct (`init.sh` / `init.ps1` and `.github/workflows/init.yml`), commit-ready.
+Or interactively: `powershell -File scripts/init.ps1`
+
+> When the script finishes, it self-deletes (`scripts/init.sh`, `scripts/init.ps1`, and `.github/workflows/init.yml`). The repo is now committed-clean — only your tracked-but-modified files remain.
+
+#### Step 3 — Initial commit + push
+
+```bash
+git add -A
+git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
+git push -u origin main      # or master, depending on your default branch
+```
+
+```powershell
+git add -A
+git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
+git push -u origin main
+```
+
+#### Step 4 — Open in Android Studio
+
+```bash
+# macOS
+open -a "Android Studio" .
+```
+
+```powershell
+# Windows
+Start-Process "studio64.exe" -ArgumentList (Get-Location).Path
+```
+
+The first sync will download Gradle dependencies. From here, follow the **▶️ Run locally** section below for each platform you kept.
 
 ## 🛠️ Post-clone bootstrap
 
