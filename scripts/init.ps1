@@ -7,17 +7,20 @@
 #   pwsh scripts/init.ps1
 #
 # Usage (non-interactive):
-#   pwsh scripts/init.ps1 -ProjectName "ImoBull" -PackageName "com.acme.app" `
+#   pwsh scripts/init.ps1 -ProjectName "MyApp" -PackageName "com.template.app" `
 #       -IncludeAndroid -IncludeIos -IncludeWeb -IncludeDesktop
 
 [CmdletBinding()]
 param(
     [string]$ProjectName,
     [string]$PackageName,
-    [Nullable[bool]]$IncludeAndroid,
-    [Nullable[bool]]$IncludeIos,
-    [Nullable[bool]]$IncludeWeb,
-    [Nullable[bool]]$IncludeDesktop,
+    # Accept as string so the script works with `powershell -File`
+    # (which always passes args as strings) and with friendly forms like
+    # `-IncludeAndroid:true`, `-IncludeAndroid yes`, `-IncludeAndroid 1`, or `-IncludeAndroid:$true`.
+    [string]$IncludeAndroid,
+    [string]$IncludeIos,
+    [string]$IncludeWeb,
+    [string]$IncludeDesktop,
     [switch]$SkipInstall
 )
 
@@ -31,20 +34,34 @@ function Read-StringIfEmpty {
     return $Current
 }
 
+function ConvertTo-NullableBool {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    switch -Regex ($Value.Trim().ToLowerInvariant()) {
+        '^(1|true|t|yes|y|\$true)$'  { return $true }
+        '^(0|false|f|no|n|\$false)$' { return $false }
+        default {
+            Write-Error "Invalid boolean value '$Value'. Use true/false, yes/no, 1/0."
+            exit 1
+        }
+    }
+}
+
 function Read-BoolIfNull {
-    param([Nullable[bool]]$Current, [string]$Prompt)
-    if ($null -eq $Current) {
+    param([string]$Current, [string]$Prompt)
+    $parsed = ConvertTo-NullableBool $Current
+    if ($null -eq $parsed) {
         $ans = Read-Host "$Prompt [Y/n]"
         switch -Regex ($ans) {
             '^(n|no|false)$' { return $false }
             default          { return $true }
         }
     }
-    return [bool]$Current
+    return $parsed
 }
 
-$ProjectName    = Read-StringIfEmpty $ProjectName 'Project name (e.g. ImoBull)'
-$PackageName    = Read-StringIfEmpty $PackageName 'Package name (e.g. com.acme.app)'
+$ProjectName    = Read-StringIfEmpty $ProjectName 'Project name (e.g. MyApp)'
+$PackageName    = Read-StringIfEmpty $PackageName 'Package name (e.g. com.myapp)'
 $IncludeAndroid = Read-BoolIfNull    $IncludeAndroid 'Include Android target?'
 $IncludeIos     = Read-BoolIfNull    $IncludeIos     'Include iOS target?'
 $IncludeWeb     = Read-BoolIfNull    $IncludeWeb     'Include Web target?'
@@ -56,7 +73,7 @@ if ($ProjectName -notmatch '^[A-Za-z][A-Za-z0-9_-]*$') {
     exit 1
 }
 if ($PackageName -notmatch '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$') {
-    Write-Error 'package_name must be a valid dotted lowercase Kotlin package (e.g. com.acme.app).'
+    Write-Error 'package_name must be a valid dotted lowercase Kotlin package (e.g. com.myapp).'
     exit 1
 }
 if (-not ($IncludeAndroid -or $IncludeIos -or $IncludeWeb -or $IncludeDesktop)) {
@@ -192,7 +209,9 @@ if ($SkipInstall) {
 } else {
     Write-Host ''
     Write-Host '>> Running scripts/team.install.ps1...'
-    & pwsh -NoProfile -File 'scripts/team.install.ps1'
+    # Prefer PowerShell 7+ (`pwsh`) when available, otherwise fall back to Windows PowerShell 5.1.
+    $psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+    & $psHost -NoProfile -File 'scripts/team.install.ps1'
 }
 
 # Remove this script last so it stays valid through execution.
@@ -202,7 +221,4 @@ if ($selfPath -and (Test-Path $selfPath)) {
 
 Write-Host ''
 Write-Host " Template initialized as $ProjectName ($PackageName). Review the changes and commit." -ForegroundColor Green
-
-
-
 

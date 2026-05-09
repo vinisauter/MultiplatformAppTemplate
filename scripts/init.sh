@@ -7,8 +7,8 @@
 # Usage (interactive):   bash scripts/init.sh
 # Usage (non-interactive):
 #   bash scripts/init.sh \
-#     --project-name "ImoBull" \
-#     --package-name "com.acme.app" \
+#     --project-name "Multiplatform Template App" \
+#     --package-name "com.template.app" \
 #     --android true --ios true --web true --desktop true
 
 set -euo pipefail
@@ -20,8 +20,8 @@ PROJECT_NAME=""
 PACKAGE_NAME=""
 INC_AND="true"
 INC_IOS="true"
-INC_WEB="true"
-INC_DSK="true"
+INC_WEB="false"
+INC_DSK="false"
 SKIP_INSTALL="false"
 
 while [ $# -gt 0 ]; do
@@ -62,8 +62,8 @@ prompt_yesno_if_empty() {
   fi
 }
 
-prompt_if_empty PROJECT_NAME "Project name (e.g. ImoBull)"
-prompt_if_empty PACKAGE_NAME "Package name (e.g. com.acme.app)"
+prompt_if_empty PROJECT_NAME "Project name (e.g. MyApp)"
+prompt_if_empty PACKAGE_NAME "Package name (e.g. com.myapp)"
 prompt_yesno_if_empty INC_AND "Include Android target?"
 prompt_yesno_if_empty INC_IOS "Include iOS target?"
 prompt_yesno_if_empty INC_WEB "Include Web target?"
@@ -77,7 +77,7 @@ if ! printf '%s' "$PROJECT_NAME" | grep -Eq '^[A-Za-z][A-Za-z0-9_-]*$'; then
   exit 1
 fi
 if ! printf '%s' "$PACKAGE_NAME" | grep -Eq '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$'; then
-  echo "❌ package_name must be a valid dotted lowercase Kotlin package (e.g. com.acme.app)." >&2
+  echo "❌ package_name must be a valid dotted lowercase Kotlin package (e.g. com.myapp)." >&2
   exit 1
 fi
 if [ "$INC_AND" != "true" ] && [ "$INC_IOS" != "true" ] && [ "$INC_WEB" != "true" ] && [ "$INC_DSK" != "true" ]; then
