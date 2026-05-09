@@ -32,7 +32,7 @@ A **GitHub Template Repository** for production-grade Kotlin Multiplatform apps 
 After cloning the initialized repo:
 
 - **macOS / Linux:** `bash scripts/team.install.sh`
-- **Windows (PowerShell 7+):** `pwsh scripts/team.install.ps1`
+- **Windows (Windows PowerShell 5.1 or PowerShell 7+):** `powershell -File scripts/team.install.ps1`
 
 This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktlint + ArchUnit) and `pre-push` (`check jvmTest compileCommonMainKotlinMetadata`) Git hooks, and validates JDK 17+ (and `kdoctor` on macOS for iOS work).
 
@@ -53,6 +53,7 @@ This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktl
     init.yml                        Template initialization (self-destructs)
     kmp-ci.yml                      Optimized CI (Linux fast path + gated iOS)
 scripts/
+  init.sh / .ps1                    Local alternative to init.yml (chains into team.install)
   generate_viewmodel.sh / .ps1      Knowledge layer scaffolders
   team.install.sh / .ps1            Distribution layer (onboarding)
   hooks/                            Protection layer

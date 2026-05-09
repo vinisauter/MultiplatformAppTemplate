@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# scripts/init.sh
+# Local alternative to the `Initialize KMP Project Template` GitHub Actions workflow.
+# Rewrites placeholders, prunes unselected platforms, writes .template.config,
+# self-destructs init.yml, then runs scripts/team.install.sh.
+#
+# Usage (interactive):   bash scripts/init.sh
+# Usage (non-interactive):
+#   bash scripts/init.sh \
+#     --project-name "ImoBull" \
+#     --package-name "com.acme.app" \
+#     --android true --ios true --web true --desktop true
+
+set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Argument parsing
+# -----------------------------------------------------------------------------
+PROJECT_NAME=""
+PACKAGE_NAME=""
+INC_AND="true"
+INC_IOS="true"
+INC_WEB="true"
+INC_DSK="true"
+SKIP_INSTALL="false"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --project-name) PROJECT_NAME="$2"; shift 2 ;;
+    --package-name) PACKAGE_NAME="$2"; shift 2 ;;
+    --android)      INC_AND="$2"; shift 2 ;;
+    --ios)          INC_IOS="$2"; shift 2 ;;
+    --web)          INC_WEB="$2"; shift 2 ;;
+    --desktop)      INC_DSK="$2"; shift 2 ;;
+    --skip-install) SKIP_INSTALL="true"; shift ;;
+    -h|--help)
+      grep -E '^# ' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) echo "Unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
+
+prompt_if_empty() {
+  local var="$1" message="$2" current
+  current="$(eval "echo \"\$$var\"")"
+  if [ -z "$current" ]; then
+    read -r -p "$message: " value
+    eval "$var=\"\$value\""
+  fi
+}
+
+prompt_yesno_if_empty() {
+  local var="$1" message="$2" current
+  current="$(eval "echo \"\$$var\"")"
+  if [ "$current" != "true" ] && [ "$current" != "false" ]; then
+    read -r -p "$message [Y/n]: " ans
+    case "$ans" in
+      n|N|no|NO|false) eval "$var=false" ;;
+      *) eval "$var=true" ;;
+    esac
+  fi
+}
+
+prompt_if_empty PROJECT_NAME "Project name (e.g. ImoBull)"
+prompt_if_empty PACKAGE_NAME "Package name (e.g. com.acme.app)"
+prompt_yesno_if_empty INC_AND "Include Android target?"
+prompt_yesno_if_empty INC_IOS "Include iOS target?"
+prompt_yesno_if_empty INC_WEB "Include Web target?"
+prompt_yesno_if_empty INC_DSK "Include Desktop target?"
+
+# -----------------------------------------------------------------------------
+# Validation
+# -----------------------------------------------------------------------------
+if ! printf '%s' "$PROJECT_NAME" | grep -Eq '^[A-Za-z][A-Za-z0-9_-]*$'; then
+  echo "❌ project_name must start with a letter and contain only [A-Za-z0-9_-]." >&2
+  exit 1
+fi
+if ! printf '%s' "$PACKAGE_NAME" | grep -Eq '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$'; then
+  echo "❌ package_name must be a valid dotted lowercase Kotlin package (e.g. com.acme.app)." >&2
+  exit 1
+fi
+if [ "$INC_AND" != "true" ] && [ "$INC_IOS" != "true" ] && [ "$INC_WEB" != "true" ] && [ "$INC_DSK" != "true" ]; then
+  echo "❌ At least one platform must be enabled." >&2
+  exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+PACKAGE_PATH="${PACKAGE_NAME//./\/}"
+
+echo ""
+echo "🚀 Initializing template:"
+echo "   project_name = $PROJECT_NAME"
+echo "   package_name = $PACKAGE_NAME"
+echo "   package_path = $PACKAGE_PATH"
+echo "   android=$INC_AND  ios=$INC_IOS  web=$INC_WEB  desktop=$INC_DSK"
+echo ""
+
+# -----------------------------------------------------------------------------
+# 1. Rewrite placeholders across all text files.
+# -----------------------------------------------------------------------------
+echo "🔁 Rewriting {{PROJECT_NAME}} / {{PACKAGE_NAME}} / {{PACKAGE_PATH}} placeholders..."
+mapfile -t FILES < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+  -e '{{PROJECT_NAME}}' -e '{{PACKAGE_NAME}}' -e '{{PACKAGE_PATH}}' . || true)
+for f in "${FILES[@]}"; do
+  sed -i.bak \
+    -e "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" \
+    -e "s|{{PACKAGE_NAME}}|${PACKAGE_NAME}|g" \
+    -e "s|{{PACKAGE_PATH}}|${PACKAGE_PATH}|g" \
+    "$f"
+  rm -f "$f.bak"
+done
+
+# -----------------------------------------------------------------------------
+# 2. Rewrite Kotlin package declarations and rename source directories.
+# -----------------------------------------------------------------------------
+echo "📦 Renaming Kotlin package directories org.company.app -> $PACKAGE_NAME ..."
+find . -type f -name '*.kt' -not -path './build/*' -not -path './.gradle/*' \
+  -exec sed -i.bak "s|org\.company\.app|${PACKAGE_NAME}|g" {} +
+find . -type f -name '*.kt.bak' -delete
+
+for module in sharedUI androidApp desktopApp webApp iosApp; do
+  for src_root in "$module"/src/*/kotlin; do
+    [ -d "$src_root/org/company/app" ] || continue
+    mkdir -p "$src_root/$PACKAGE_PATH"
+    shopt -s dotglob nullglob
+    mv "$src_root/org/company/app/"* "$src_root/$PACKAGE_PATH/" 2>/dev/null || true
+    shopt -u dotglob nullglob
+    rm -rf "$src_root/org"
+  done
+done
+
+# -----------------------------------------------------------------------------
+# 3. Prune unselected platforms via // region <plat> markers + module dirs.
+# -----------------------------------------------------------------------------
+delete_region() {
+  local plat="$1"
+  find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
+    -not -path './build/*' -not -path './.gradle/*' \
+    -exec sed -i.bak "/\/\/ region ${plat}\b/,/\/\/ endregion ${plat}\b/d" {} +
+  find . -type f \( -name '*.bak' \) -not -path './build/*' -not -path './.gradle/*' -delete
+}
+
+drop_module() {
+  local module="$1"
+  rm -rf "$module"
+  sed -i.bak "/include(\":${module}\")/d" settings.gradle.kts
+  rm -f settings.gradle.kts.bak
+}
+
+[ "$INC_AND" = "true" ] || { echo "✂️  Removing Android target..."; delete_region android; drop_module androidApp; }
+[ "$INC_IOS" = "true" ] || { echo "✂️  Removing iOS target...";     delete_region ios;     drop_module iosApp; }
+[ "$INC_WEB" = "true" ] || { echo "✂️  Removing Web target...";     delete_region web;     drop_module webApp; }
+[ "$INC_DSK" = "true" ] || { echo "✂️  Removing Desktop target..."; delete_region desktop; drop_module desktopApp; }
+
+# -----------------------------------------------------------------------------
+# 4. Write .template.config consumed by .github/workflows/kmp-ci.yml.
+# -----------------------------------------------------------------------------
+echo "📝 Writing .template.config..."
+{
+  echo "# Generated by scripts/init.sh - do not edit by hand."
+  echo "PROJECT_NAME=${PROJECT_NAME}"
+  echo "PACKAGE_NAME=${PACKAGE_NAME}"
+  echo "INCLUDE_ANDROID=${INC_AND}"
+  echo "INCLUDE_IOS=${INC_IOS}"
+  echo "INCLUDE_WEB=${INC_WEB}"
+  echo "INCLUDE_DESKTOP=${INC_DSK}"
+} > .template.config
+
+# -----------------------------------------------------------------------------
+# 5. Self-destruct: remove init workflow + this script.
+# -----------------------------------------------------------------------------
+echo "🧨 Removing init workflow + scripts/init.* ..."
+rm -f .github/workflows/init.yml
+rm -f scripts/init.ps1
+# Defer removing $0 until after team.install runs.
+SCRIPT_PATH="$0"
+
+# -----------------------------------------------------------------------------
+# 6. Run team.install (hooks + environment validation).
+# -----------------------------------------------------------------------------
+if [ "$SKIP_INSTALL" = "true" ]; then
+  echo "⏭  Skipping team.install (--skip-install)."
+else
+  echo ""
+  echo "▶️  Running scripts/team.install.sh..."
+  bash scripts/team.install.sh
+fi
+
+# Remove this script last, so it remains valid throughout execution.
+rm -f "$SCRIPT_PATH"
+
+echo ""
+echo "🎉 Template initialized as $PROJECT_NAME ($PACKAGE_NAME). Review the changes and commit."
+
