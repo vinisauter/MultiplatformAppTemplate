@@ -10,7 +10,7 @@ fun main() {
     initKoin()
     application {
         Window(
-            title = "Multiplatform App",
+            title = "{{PROJECT_NAME}}",
             state = rememberWindowState(width = 800.dp, height = 600.dp),
             onCloseRequest = ::exitApplication,
         ) {

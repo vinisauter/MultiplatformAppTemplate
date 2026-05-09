@@ -18,8 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import multiplatform_app.sharedui.generated.resources.IndieFlower_Regular
-import multiplatform_app.sharedui.generated.resources.Res
+import org.company.app.resources.IndieFlower_Regular
+import org.company.app.resources.Res
 import org.jetbrains.compose.resources.Font
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -144,6 +144,14 @@ buildConfig {
     // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts
 }
 
+compose.resources {
+    // Pin the generated `Res` package so it does NOT depend on rootProject.name.
+    // The init script rewrites `org.company.app` -> the user's package, so the import
+    // path stays stable as `<your.package>.resources.Res` after initialization.
+    publicResClass = false
+    packageOfResClass = "org.company.app.resources"
+}
+
 room {
     schemaDirectory("$projectDir/schemas")
 }

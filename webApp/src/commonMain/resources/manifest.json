@@ -1,6 +1,6 @@
 {
-  "name": "Multiplatform App",
-  "short_name": "Multiplatform App",
+  "name": "{{PROJECT_NAME}}",
+  "short_name": "{{PROJECT_NAME}}",
   "icons": [
     {
       "src": "./android-chrome-192x192.png",

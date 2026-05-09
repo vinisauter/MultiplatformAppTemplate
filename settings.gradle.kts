@@ -1,4 +1,4 @@
-rootProject.name = "Multiplatform-App"
+rootProject.name = "{{PROJECT_NAME}}"
 
 pluginManagement {
     repositories {
