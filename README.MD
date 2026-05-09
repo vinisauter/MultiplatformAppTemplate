@@ -46,7 +46,7 @@ The block below clones the template, detaches its history, points the remote at 
 git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
 cd my-app
 
-# 2. Replace the template's history with a fresh repo pointed at your remote.
+# 2. New git repo — set up (continues at step 5 with the first commit).
 rm -rf .git && git init -b main && git remote add origin git@github.com:<you>/<your-new-repo>.git
 
 # 3. Make the scripts executable (Git on macOS/Linux preserves the bit, but a fresh
@@ -60,7 +60,7 @@ bash scripts/init.sh \
   --package-name "com.myapp" \
   --android true --ios true --web true --desktop true
 
-# 5. Commit + push.
+# 5. New git repo — first commit + push (continues from step 2).
 git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
 
 # 6. Open in Android Studio (optional).
@@ -74,7 +74,7 @@ open -a "Android Studio" .
 git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
 Set-Location my-app
 
-# 2. Replace the template's history with a fresh repo pointed at your remote.
+# 2. New git repo — set up (continues at step 4 with the first commit).
 Remove-Item -Recurse -Force .git; git init -b main; git remote add origin git@github.com:<you>/<your-new-repo>.git
 
 # 3. Run init (validates inputs, rewrites placeholders, prunes platforms,
@@ -84,7 +84,7 @@ powershell -File scripts/init.ps1 `
   -PackageName "com.myapp" `
   -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
 
-# 4. Commit + push.
+# 4. New git repo — first commit + push (continues from step 2).
 git add -A; git commit -m "chore: initialize MyApp from MultiplatformAppTemplate"; git push -u origin main
 
 # 5. Open in Android Studio (optional).
