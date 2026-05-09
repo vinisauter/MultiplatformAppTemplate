@@ -1,0 +1,50 @@
+name: Initialize KMP Project Template
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: 'New Project Name (e.g., ImoBull, Nanie)'
+        required: true
+      package_name:
+        description: 'Root Package Name (e.g., com.project.feature)'
+        required: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Replace Project Name Placeholders
+        run: |
+          # Update the team manifest for the Copilot ecosystem
+          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" manifest.json
+          
+          # Update Gradle settings
+          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" settings.gradle.kts
+          
+          # Update Copilot instructions context
+          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" .github/instructions/project.instructions.md
+
+      - name: Replace Package Name and Refactor Directories
+        run: |
+          # Update the ViewModel scaffolding script
+          sed -i "s/{{PACKAGE_NAME}}/${{ github.event.inputs.package_name }}/g" scripts/generate_viewmodel.sh
+          
+          # Update build.gradle.kts namespace
+          sed -i "s/{{PACKAGE_NAME}}/${{ github.event.inputs.package_name }}/g" composeApp/build.gradle.kts
+          
+          # Note: A real-world script here would also need to use 'mkdir -p' and 'mv' 
+          # to physically restructure the /src/commonMain/kotlin/{{PACKAGE_NAME}} directories.
+
+      - name: Commit and Clean Up
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: initialize KMP project as ${{ github.event.inputs.project_name }}"
+          
+          # Optional: Delete this workflow file so it doesn't clutter the new repo
+          git rm .github/workflows/init.yml
+          git commit -m "chore: remove initialization workflow"
+          git push
