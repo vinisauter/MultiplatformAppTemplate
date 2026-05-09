@@ -150,18 +150,26 @@ function Remove-Region {
     param([string]$Platform)
     $startMarker = "// region $Platform"
     $endMarker   = "// endregion $Platform"
-    $files = Get-ChildItem -Recurse -File -Include 'build.gradle.kts','settings.gradle.kts' |
-        Where-Object { $_.FullName -notmatch '\\(build|\.gradle)\\' }
+    # Note: -Include is silently ignored with -Recurse unless -Path ends in '*'.
+    # Filter explicitly via Where-Object to make this work reliably.
+    $files = Get-ChildItem -Recurse -File | Where-Object {
+        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts') -and
+        $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
+    }
     foreach ($file in $files) {
         $lines = [System.IO.File]::ReadAllLines($file.FullName)
         $out = New-Object System.Collections.Generic.List[string]
         $inside = $false
+        $changed = $false
         foreach ($line in $lines) {
-            if ($line -match [Regex]::Escape($startMarker) + '\b') { $inside = $true; continue }
-            if ($line -match [Regex]::Escape($endMarker) + '\b')   { $inside = $false; continue }
+            if ($line -match ([Regex]::Escape($startMarker) + '\b')) { $inside = $true;  $changed = $true; continue }
+            if ($line -match ([Regex]::Escape($endMarker)   + '\b')) { $inside = $false; $changed = $true; continue }
             if (-not $inside) { $out.Add($line) }
         }
-        [System.IO.File]::WriteAllLines($file.FullName, $out)
+        if ($changed) {
+            [System.IO.File]::WriteAllLines($file.FullName, $out)
+            Write-Host "   - pruned // region $Platform from $($file.FullName.Substring($RepoRoot.Length + 1))"
+        }
     }
 }
 

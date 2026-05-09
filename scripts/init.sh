@@ -137,10 +137,17 @@ done
 # -----------------------------------------------------------------------------
 delete_region() {
   local plat="$1"
-  find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
-    -not -path './build/*' -not -path './.gradle/*' \
-    -exec sed -i.bak "/\/\/ region ${plat}\b/,/\/\/ endregion ${plat}\b/d" {} +
-  find . -type f \( -name '*.bak' \) -not -path './build/*' -not -path './.gradle/*' -delete
+  # Match `// region <plat>` followed by end-of-line OR a non-word char.
+  # Use a portable POSIX class instead of GNU's `\b` so this works on macOS BSD sed too.
+  local files=()
+  while IFS= read -r -d '' f; do files+=("$f"); done < <(
+    find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
+      -not -path './build/*' -not -path './.gradle/*' -not -path './.git/*' -print0
+  )
+  for f in "${files[@]}"; do
+    sed -i.bak "/\/\/ region ${plat}\([^[:alnum:]_]\|$\)/,/\/\/ endregion ${plat}\([^[:alnum:]_]\|$\)/d" "$f"
+    rm -f "$f.bak"
+  done
 }
 
 drop_module() {
