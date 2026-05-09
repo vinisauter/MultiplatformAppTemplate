@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+        android:name=".AppApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="{{PROJECT_NAME}}"
         android:theme="@android:style/Theme.Material.NoActionBar">

@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # scripts/hooks/PreToolUse.sh — installed as .git/hooks/pre-commit
-# Runs ktlint + ArchUnit checks locally to spare GitHub Actions minutes.
+# Runs ktlint locally to spare GitHub Actions minutes.
 
 set -euo pipefail
-echo "🛡️  pre-commit: running ktlint + architecture tests..."
+echo "🛡️  pre-commit: running ktlint..."
 
 ./gradlew ktlintFormat --quiet
-./gradlew :sharedUI:jvmTest --tests "*ArchitectureRulesTest" --quiet || {
-  echo "❌ Clean Architecture violation detected. See ArchitectureRulesTest output."
-  exit 1
-}
+
+# Optional: enforce Clean Architecture via a custom JVM test once you write it.
+# ./gradlew :sharedUI:jvmTest --tests "*ArchitectureRulesTest" --quiet
 
 echo "✅ pre-commit checks passed."
-

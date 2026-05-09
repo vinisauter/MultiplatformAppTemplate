@@ -79,6 +79,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kstore.file)
+            implementation(libs.koin.android)
         }
         // endregion android
 
