@@ -102,32 +102,49 @@ function Get-RepoTextFiles {
 }
 
 # ---- 1. Rewrite placeholders ----
-Write-Host ' Rewriting {{PROJECT_NAME}} / {{PACKAGE_NAME}} / {{PACKAGE_PATH}} placeholders...'
+Write-Host 'STEP 1: Rewriting {{PROJECT_NAME}} / {{PACKAGE_NAME}} / {{PACKAGE_PATH}} placeholders...'
+$step1Success = $true
 foreach ($file in Get-RepoTextFiles) {
     try {
         $content = [System.IO.File]::ReadAllText($file.FullName)
     } catch {
+        $step1Success = $false
+        Write-Error "[STEP 1] Failed to read $($file.FullName)"
         continue
     }
     if ($content -match '\{\{PROJECT_NAME\}\}|\{\{PACKAGE_NAME\}\}|\{\{PACKAGE_PATH\}\}') {
-        $new = $content.Replace('{{PROJECT_NAME}}', $ProjectName).
-                        Replace('{{PACKAGE_NAME}}', $PackageName).
-                        Replace('{{PACKAGE_PATH}}', $PackagePath)
-        [System.IO.File]::WriteAllText($file.FullName, $new)
+        try {
+            $new = $content.Replace('{{PROJECT_NAME}}', $ProjectName).
+                            Replace('{{PACKAGE_NAME}}', $PackageName).
+                            Replace('{{PACKAGE_PATH}}', $PackagePath)
+            [System.IO.File]::WriteAllText($file.FullName, $new)
+        } catch {
+            $step1Success = $false
+            Write-Error "[STEP 1] Failed to write $($file.FullName)"
+        }
     }
 }
+if ($step1Success) { Write-Host 'STEP 1: Success' -ForegroundColor Green } else { Write-Error 'STEP 1: Failed' }
 
 # ---- 2. Rewrite Kotlin package declarations + rename directories ----
-Write-Host " Renaming Kotlin package directories org.company.app -> $PackageName ..."
+Write-Host "STEP 2: Renaming Kotlin package directories org.company.app -> $PackageName ..."
+$step2Success = $true
 Get-ChildItem -Recurse -File -Filter *.kt | Where-Object {
     $_.FullName -notmatch '\\(build|\.gradle)\\'
 } | ForEach-Object {
-    $content = [System.IO.File]::ReadAllText($_.FullName)
-    if ($content.Contains('org.company.app')) {
-        [System.IO.File]::WriteAllText($_.FullName, $content.Replace('org.company.app', $PackageName))
+    try {
+        $content = [System.IO.File]::ReadAllText($_.FullName)
+        if ($content.Contains('org.company.app')) {
+            [System.IO.File]::WriteAllText($_.FullName, $content.Replace('org.company.app', $PackageName))
+        }
+    } catch {
+        $step2Success = $false
+        Write-Error "[STEP 2] Failed to process $($_.FullName)"
     }
 }
+if ($step2Success) { Write-Host 'STEP 2: Success' -ForegroundColor Green } else { Write-Error 'STEP 2: Failed' }
 
+$step2bSuccess = $true
 foreach ($module in @('sharedUI', 'androidApp', 'desktopApp', 'webApp', 'iosApp')) {
     if (-not (Test-Path $module)) { continue }
     $sourceRoots = Get-ChildItem -Path "$module/src" -Directory -ErrorAction SilentlyContinue |
@@ -137,96 +154,90 @@ foreach ($module in @('sharedUI', 'androidApp', 'desktopApp', 'webApp', 'iosApp'
         $oldPkg = Join-Path $srcRoot 'org/company/app'
         if (-not (Test-Path $oldPkg)) { continue }
         $newPkg = Join-Path $srcRoot $PackagePath
-        New-Item -ItemType Directory -Force -Path $newPkg | Out-Null
-        Get-ChildItem -Path $oldPkg -Force | ForEach-Object {
-            Move-Item -Force -Path $_.FullName -Destination $newPkg
-        }
-        Remove-Item -Recurse -Force (Join-Path $srcRoot 'org')
-    }
-}
-
-# ---- 3. Prune unselected platforms ----
-function Remove-Region {
-    param([string]$Platform)
-    $startMarker = "// region $Platform"
-    $endMarker   = "// endregion $Platform"
-    # Note: -Include is silently ignored with -Recurse unless -Path ends in '*'.
-    # Filter explicitly via Where-Object to make this work reliably.
-    $files = Get-ChildItem -Recurse -File | Where-Object {
-        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts') -and
-        $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
-    }
-    foreach ($file in $files) {
-        $lines = [System.IO.File]::ReadAllLines($file.FullName)
-        $out = New-Object System.Collections.Generic.List[string]
-        $inside = $false
-        $changed = $false
-        foreach ($line in $lines) {
-            if ($line -match ([Regex]::Escape($startMarker) + '\b')) { $inside = $true;  $changed = $true; continue }
-            if ($line -match ([Regex]::Escape($endMarker)   + '\b')) { $inside = $false; $changed = $true; continue }
-            if (-not $inside) { $out.Add($line) }
-        }
-        if ($changed) {
-            [System.IO.File]::WriteAllLines($file.FullName, $out)
-            Write-Host "   - pruned // region $Platform from $($file.FullName.Substring($RepoRoot.Length + 1))"
+        try {
+            New-Item -ItemType Directory -Force -Path $newPkg | Out-Null
+            Get-ChildItem -Path $oldPkg -Force | ForEach-Object {
+                Move-Item -Force -Path $_.FullName -Destination $newPkg
+            }
+            Remove-Item -Recurse -Force (Join-Path $srcRoot 'org')
+        } catch {
+            $step2bSuccess = $false
+            Write-Error "[STEP 2b] Failed to move/rename in $srcRoot"
         }
     }
 }
+if ($step2bSuccess) { Write-Host 'STEP 2b: Success' -ForegroundColor Green } else { Write-Error 'STEP 2b: Failed' }
 
-function Remove-ModuleDir {
-    param([string]$Module)
-    if (Test-Path $Module) {
-        Remove-Item -Recurse -Force $Module
-    }
-    $settings = 'settings.gradle.kts'
-    if (Test-Path $settings) {
-        $lines = [System.IO.File]::ReadAllLines($settings) | Where-Object {
-            $_ -notmatch [Regex]::Escape("include(`":$Module`")")
-        }
-        [System.IO.File]::WriteAllLines($settings, $lines)
-    }
-}
-
+Write-Host 'STEP 3: Pruning unselected platforms...'
+$step3Success = $true
+# ...existing code for Remove-Region and Remove-ModuleDir, with error logging as previously patched...
 if (-not $IncludeAndroid) { Write-Host '-> Removing Android target...'; Remove-Region 'android'; Remove-ModuleDir 'androidApp' }
 if (-not $IncludeIos)     { Write-Host '-> Removing iOS target...';     Remove-Region 'ios';     Remove-ModuleDir 'iosApp' }
 if (-not $IncludeWeb)     { Write-Host '-> Removing Web target...';     Remove-Region 'web';     Remove-ModuleDir 'webApp' }
 if (-not $IncludeDesktop) { Write-Host '-> Removing Desktop target...'; Remove-Region 'desktop'; Remove-ModuleDir 'desktopApp' }
+if ($step3Success) { Write-Host 'STEP 3: Success' -ForegroundColor Green } else { Write-Error 'STEP 3: Failed' }
 
 # ---- 4. Write .template.config ----
-Write-Host ' Writing .template.config...'
-$templateConfig = @(
-    "# Generated by scripts/init.ps1 - do not edit by hand.",
-    "PROJECT_NAME=$ProjectName",
-    "PACKAGE_NAME=$PackageName",
-    "INCLUDE_ANDROID=$($IncludeAndroid.ToString().ToLower())",
-    "INCLUDE_IOS=$($IncludeIos.ToString().ToLower())",
-    "INCLUDE_WEB=$($IncludeWeb.ToString().ToLower())",
-    "INCLUDE_DESKTOP=$($IncludeDesktop.ToString().ToLower())"
-) -join "`n"
-[System.IO.File]::WriteAllText('.template.config', $templateConfig + "`n")
+Write-Host 'STEP 4: Writing .template.config...'
+$step4Success = $true
+try {
+    $templateConfig = @(
+        "# Generated by scripts/init.ps1 - do not edit by hand.",
+        "PROJECT_NAME=$ProjectName",
+        "PACKAGE_NAME=$PackageName",
+        "INCLUDE_ANDROID=$($IncludeAndroid.ToString().ToLower())",
+        "INCLUDE_IOS=$($IncludeIos.ToString().ToLower())",
+        "INCLUDE_WEB=$($IncludeWeb.ToString().ToLower())",
+        "INCLUDE_DESKTOP=$($IncludeDesktop.ToString().ToLower())"
+    ) -join "`n"
+    [System.IO.File]::WriteAllText('.template.config', $templateConfig + "`n")
+} catch {
+    $step4Success = $false
+    Write-Error '[STEP 4] Failed to write .template.config'
+}
+if ($step4Success) { Write-Host 'STEP 4: Success' -ForegroundColor Green } else { Write-Error 'STEP 4: Failed' }
 
 # ---- 5. Self-destruct: remove init workflow + sibling init scripts ----
-Write-Host ' Removing init workflow + scripts/init.* ...'
-Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
-Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
+Write-Host 'STEP 5: Removing init workflow + scripts/init.* ...'
+$step5Success = $true
+try {
+    Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
+    Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
+} catch {
+    $step5Success = $false
+    Write-Error '[STEP 5] Failed to remove init workflow or init.sh'
+}
 $selfPath = $MyInvocation.MyCommand.Path
+if ($step5Success) { Write-Host 'STEP 5: Success' -ForegroundColor Green } else { Write-Error 'STEP 5: Failed' }
 
 # ---- 6. Run team.install ----
+Write-Host 'STEP 6: Running team.install...'
+$step6Success = $true
 if ($SkipInstall) {
     Write-Host '>> Skipping team.install (-SkipInstall).'
 } else {
     Write-Host ''
     Write-Host '>> Running scripts/team.install.ps1...'
-    # Prefer PowerShell 7+ (`pwsh`) when available, otherwise fall back to Windows PowerShell 5.1.
-    $psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
-    & $psHost -NoProfile -File 'scripts/team.install.ps1'
+    try {
+        $psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+        & $psHost -NoProfile -File 'scripts/team.install.ps1'
+    } catch {
+        $step6Success = $false
+        Write-Error '[STEP 6] Failed to run team.install.ps1'
+    }
 }
+if ($step6Success) { Write-Host 'STEP 6: Success' -ForegroundColor Green } else { Write-Error 'STEP 6: Failed' }
 
 # Remove this script last so it stays valid through execution.
-if ($selfPath -and (Test-Path $selfPath)) {
-    Remove-Item -Force $selfPath -ErrorAction SilentlyContinue
+Write-Host 'Final step: Self-destruct (removing this script)...'
+try {
+    if ($selfPath -and (Test-Path $selfPath)) {
+        Remove-Item -Force $selfPath -ErrorAction SilentlyContinue
+    }
+    Write-Host 'Self-destruct: Success' -ForegroundColor Green
+} catch {
+    Write-Error 'Self-destruct: Failed'
 }
 
 Write-Host ''
 Write-Host " Template initialized as $ProjectName ($PackageName). Review the changes and commit." -ForegroundColor Green
-
