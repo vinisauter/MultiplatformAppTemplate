@@ -1,0 +1,28 @@
+{
+  "project": "{{PROJECT_NAME}}",
+  "ide": "Android Studio",
+  "ai_assistant": "GitHub Copilot",
+  "instructions_path": ".github/instructions",
+  "personas_path": ".github/personas",
+  "hooks_path": "scripts/hooks",
+  "config_file": ".template.config",
+  "tech_stack": [
+    "kotlin-multiplatform",
+    "compose-multiplatform",
+    "androidx-viewmodel",
+    "androidx-navigation3",
+    "koin",
+    "ktor",
+    "apollo-kotlin",
+    "room-kmp",
+    "kotlinx-serialization",
+    "kotlinx-datetime",
+    "kermit",
+    "multiplatform-settings",
+    "kstore",
+    "coil3",
+    "material-kolor",
+    "buildconfig"
+  ]
+}
+

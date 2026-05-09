@@ -16,7 +16,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Multiplatform App"
+            packageName = "{{PROJECT_NAME}}"
             packageVersion = "1.0.0"
 
             linux {
@@ -27,7 +27,7 @@ compose.desktop {
             }
             macOS {
                 iconFile.set(project.file("appIcons/MacosIcon.icns"))
-                bundleID = "org.company.app.desktopApp"
+                bundleID = "{{PACKAGE_NAME}}.desktopApp"
             }
         }
     }

@@ -29,7 +29,13 @@ dependencyResolutionManagement {
     }
 }
 include(":sharedUI")
+// region android
 include(":androidApp")
+// endregion android
+// region desktop
 include(":desktopApp")
+// endregion desktop
+// region web
 include(":webApp")
+// endregion web
 

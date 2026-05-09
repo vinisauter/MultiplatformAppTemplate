@@ -15,19 +15,27 @@ plugins {
 }
 
 kotlin {
+    // region android
     androidTarget { //We need the deprecated target to have working previews
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
     }
+    // endregion android
 
+    // region desktop
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
     }
+    // endregion desktop
 
+    // region web
     js { browser() }
     wasmJs { browser() }
+    // endregion web
 
+    // region ios
     iosArm64()
     iosSimulatorArm64()
+    // endregion ios
 
     sourceSets {
         commonMain.dependencies {
@@ -66,30 +74,39 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
 
+        // region android
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kstore.file)
         }
+        // endregion android
 
+        // region desktop
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kstore.file)
         }
+        // endregion desktop
 
+        // region web
         webMain.dependencies {
             implementation(libs.kstore.storage)
         }
+        // endregion web
 
+        // region ios
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.kstore.file)
         }
+        // endregion ios
 
     }
 
+    // region ios
     targets
         .withType<KotlinNativeTarget>()
         .matching { it.konanTarget.family.isAppleFamily }
@@ -101,13 +118,15 @@ kotlin {
                 }
             }
         }
+    // endregion ios
 }
 
 dependencies {
     debugImplementation(libs.compose.ui.tooling)
 }
+// region android
 android {
-    namespace = "org.company.app"
+    namespace = "{{PACKAGE_NAME}}"
     compileSdk = 36
     defaultConfig {
         minSdk = 23
@@ -117,6 +136,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+// endregion android
 
 buildConfig {
     // BuildConfig configuration here.
@@ -131,15 +151,21 @@ apollo {
     service("api") {
         // GraphQL configuration here.
         // https://www.apollographql.com/docs/kotlin/advanced/plugin-configuration/
-        packageName.set("org.company.app.graphql")
+        packageName.set("{{PACKAGE_NAME}}.graphql")
     }
 }
 
 dependencies {
     with(libs.room.compiler) {
+        // region android
         add("kspAndroid", this)
+        // endregion android
+        // region desktop
         add("kspJvm", this)
+        // endregion desktop
+        // region ios
         add("kspIosArm64", this)
         add("kspIosSimulatorArm64", this)
+        // endregion ios
     }
 }

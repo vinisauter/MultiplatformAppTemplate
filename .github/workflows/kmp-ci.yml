@@ -1,0 +1,87 @@
+name: KMP Optimized Build (Free Tier)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Read .template.config
+    runs-on: ubuntu-latest
+    outputs:
+      include_android: ${{ steps.parse.outputs.include_android }}
+      include_ios:     ${{ steps.parse.outputs.include_ios }}
+      include_web:     ${{ steps.parse.outputs.include_web }}
+      include_desktop: ${{ steps.parse.outputs.include_desktop }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: parse
+        run: |
+          set -euo pipefail
+          if [ ! -f .template.config ]; then
+            echo "::error::.template.config not found. Run the Initialize workflow first."
+            exit 1
+          fi
+          # shellcheck disable=SC1091
+          source .template.config
+          {
+            echo "include_android=${INCLUDE_ANDROID:-true}"
+            echo "include_ios=${INCLUDE_IOS:-true}"
+            echo "include_web=${INCLUDE_WEB:-true}"
+            echo "include_desktop=${INCLUDE_DESKTOP:-true}"
+          } >> "$GITHUB_OUTPUT"
+
+  jvm-android-checks:
+    name: Fast Checks (Linux)
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+
+      - name: Ktlint + JVM tests + common metadata
+        run: ./gradlew ktlintCheck check jvmTest compileCommonMainKotlinMetadata --parallel
+
+  ios-build:
+    name: iOS Native Compile (macOS)
+    needs: [ setup, jvm-android-checks ]
+    if: >-
+      needs.setup.outputs.include_ios == 'true' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+
+      - name: Cache Konan (Kotlin/Native)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-konan-${{ hashFiles('**/*.gradle*', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-konan-
+
+      - name: Compile iOS framework
+        run: ./gradlew :sharedUI:compileKotlinIosX64 :sharedUI:compileKotlinIosSimulatorArm64 --parallel
+

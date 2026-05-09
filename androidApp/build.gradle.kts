@@ -7,14 +7,14 @@ plugins {
 }
 
 android {
-    namespace = "org.company.app.androidApp"
+    namespace = "{{PACKAGE_NAME}}.androidApp"
     compileSdk = 36
 
     defaultConfig {
         minSdk = 23
         targetSdk = 36
 
-        applicationId = "org.company.app.androidApp"
+        applicationId = "{{PACKAGE_NAME}}.androidApp"
         versionCode = 1
         versionName = "1.0.0"
     }

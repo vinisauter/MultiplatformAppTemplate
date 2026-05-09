@@ -1,29 +1,115 @@
-# Multiplatform App
+# {{PROJECT_NAME}} — KMP + MVVM Template
+
+A **GitHub Template Repository** for production-grade Kotlin Multiplatform apps with Jetpack Compose, MVVM, Clean Architecture, and a Copilot-aware ADK ecosystem.
+
+> Modules: `:sharedUI` (commonMain logic + Compose UI) • `:androidApp` • `:iosApp` • `:desktopApp` • `:webApp`.
+> Stack: Koin, Ktor, Apollo Kotlin, Room KMP, AndroidX ViewModel + Navigation 3, Kermit, kotlinx-datetime, Multiplatform Settings, KStore, Coil 3, MaterialKolor, BuildConfig.
+
+---
+
+## 🚀 Use this template
+
+1. Click **"Use this template" → Create a new repository** on GitHub.
+2. In the new repo, open **Actions → `Initialize KMP Project Template` → Run workflow**.
+3. Fill the inputs:
+
+   | Input             | Description                                                                          |
+   |-------------------|--------------------------------------------------------------------------------------|
+   | `project_name`    | Human-readable name. Used in app labels, manifest, settings.                         |
+   | `package_name`    | Dotted Kotlin package (e.g. `com.acme.app`). Used as namespace + applicationId root. |
+   | `include_android` | Keep the `:androidApp` module + Android target.                                      |
+   | `include_ios`     | Keep the `:iosApp` module + Apple Kotlin/Native targets.                             |
+   | `include_web`     | Keep the `:webApp` module + JS/WasmJS targets.                                       |
+   | `include_desktop` | Keep the `:desktopApp` module + JVM target.                                          |
+
+4. The workflow rewrites all placeholders, deletes any unselected platforms via `// region <plat>` markers, writes `.template.config`, then self-destructs.
+5. Pull the resulting commit locally and run the onboarding script (next section).
+
+> ⚠️ At least one platform checkbox must be enabled. The workflow validates inputs and fails fast otherwise.
+
+## 🛠️ Post-clone bootstrap
+
+After cloning the initialized repo:
+
+- **macOS / Linux:** `bash scripts/team.install.sh`
+- **Windows (PowerShell 7+):** `pwsh scripts/team.install.ps1`
+
+This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktlint + ArchUnit) and `pre-push` (`check jvmTest compileCommonMainKotlinMetadata`) Git hooks, and validates JDK 17+ (and `kdoctor` on macOS for iOS work).
+
+## 📁 Repository layout
+
+```
+.github/
+  copilot-instructions.md           Memory layer (Copilot global rules)
+  instructions/                     Path-scoped rules
+    architecture.instructions.md
+    global.instructions.md
+    project.instructions.md
+  personas/                         Delegation layer (Chat personas)
+    code-reviewer.md
+    test-runner.md
+    explorer.md
+  workflows/
+    init.yml                        Template initialization (self-destructs)
+    kmp-ci.yml                      Optimized CI (Linux fast path + gated iOS)
+scripts/
+  generate_viewmodel.sh / .ps1      Knowledge layer scaffolders
+  team.install.sh / .ps1            Distribution layer (onboarding)
+  hooks/                            Protection layer
+    SessionStart.sh / .ps1
+    PreToolUse.sh / .ps1            Installed as pre-commit
+    PostToolUse.sh / .ps1           Installed as pre-push
+sharedUI/                           commonMain ViewModels, repos, UI
+androidApp/  iosApp/  desktopApp/  webApp/   Platform entry points
+manifest.json                       Distribution manifest
+SKILL.md                            Copilot Chat prompt catalog
+context.md                          Deep technical context
+.template.config                    Per-project flags consumed by CI
+```
+
+## 🤖 ADK 5-layer model
+
+| Layer            | Files                                                       |
+|------------------|-------------------------------------------------------------|
+| **Memory**       | `.github/copilot-instructions.md`, `.github/instructions/*` |
+| **Knowledge**    | `SKILL.md`, `context.md`, `scripts/generate_*.{sh,ps1}`     |
+| **Protection**   | `scripts/hooks/*.{sh,ps1}`                                  |
+| **Delegation**   | `.github/personas/*.md`                                     |
+| **Distribution** | `manifest.json`, `scripts/team.install.{sh,ps1}`            |
+
+## 💸 GitHub Actions Free-tier strategy
+
+The 2,000-minute monthly budget is protected by:
+
+1. **Local shift-left:** ktlint + ArchUnit + JVM tests + `compileCommonMainKotlinMetadata` run in pre-commit / pre-push hooks.
+2. **Linux-first CI:** every PR runs only the Linux fast-path job (1× cost).
+3. **iOS gating:** `compileKotlinIosX64` + `compileKotlinIosSimulatorArm64` (10× cost) run **only on push to `main`** or via manual `workflow_dispatch`, and only if `INCLUDE_IOS=true` in `.template.config`.
+4. **Konan cache:** `~/.konan` is keyed on `gradle/libs.versions.toml`.
+
+## ▶️ Run locally
 
 ### Android
-To run the application on android device/emulator:  
- - open project in Android Studio and run imported android run configuration  
-
-To build the application bundle:  
- - run `./gradlew :androidApp:assembleDebug`  
- - find `.apk` file in `androidApp/build/outputs/apk/debug/androidApp-debug.apk`  
+- Open in Android Studio and run the `androidApp` configuration, **or** `./gradlew :androidApp:assembleDebug`.
 
 ### Desktop
-Run the desktop application: `./gradlew :desktopApp:run`  
-Run the desktop **hot reload** application: `./gradlew :desktopApp:hotRun --auto`  
+- `./gradlew :desktopApp:run`
 
 ### iOS
-To run the application on iPhone device/simulator:  
- - Open `iosApp/iosApp.xcproject` in Xcode and run standard configuration  
- - Or use [Kotlin Multiplatform Mobile plugin](https://plugins.jetbrains.com/plugin/14936-kotlin-multiplatform-mobile) for Android Studio  
+- Open `iosApp/iosApp.xcodeproj` in Xcode, or use the [Kotlin Multiplatform plugin](https://plugins.jetbrains.com/plugin/14936-kotlin-multiplatform-mobile) for Android Studio.
 
-### Web Distribution
-Build web distribution: `./gradlew :webApp:composeCompatibilityBrowserDistribution`  
-Deploy a dir `webApp/build/dist/composeWebCompatibility/productionExecutable` to a web server  
+### Web
+- Distribution: `./gradlew :webApp:composeCompatibilityBrowserDistribution` (output in `webApp/build/dist/composeWebCompatibility/productionExecutable`).
+- Dev server: `./gradlew :webApp:jsBrowserDevelopmentRun` or `:webApp:wasmJsBrowserDevelopmentRun`.
 
-### JS Browser
-Run the browser application: `./gradlew :webApp:jsBrowserDevelopmentRun`  
+## 📑 `.template.config` schema
 
-### Wasm Browser
-Run the browser application: `./gradlew :webApp:wasmJsBrowserDevelopmentRun`  
+```
+PROJECT_NAME=<string>
+PACKAGE_NAME=<dotted-lowercase>
+INCLUDE_ANDROID=true|false
+INCLUDE_IOS=true|false
+INCLUDE_WEB=true|false
+INCLUDE_DESKTOP=true|false
+```
 
+The CI `setup` job reads this file and exposes the flags as job outputs gating each platform job.

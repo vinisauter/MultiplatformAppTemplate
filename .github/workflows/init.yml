@@ -1,50 +1,168 @@
 name: Initialize KMP Project Template
+
 on:
   workflow_dispatch:
     inputs:
       project_name:
-        description: 'New Project Name (e.g., ImoBull, Nanie)'
+        description: 'Human-readable project name (e.g. ImoBull, Nanie)'
         required: true
+        type: string
       package_name:
-        description: 'Root Package Name (e.g., com.project.feature)'
+        description: 'Root Kotlin package (dotted, e.g. com.acme.app)'
         required: true
+        type: string
+      include_android:
+        description: 'Include Android target'
+        required: true
+        type: boolean
+        default: true
+      include_ios:
+        description: 'Include iOS target'
+        required: true
+        type: boolean
+        default: true
+      include_web:
+        description: 'Include Web (JS + WasmJS) target'
+        required: true
+        type: boolean
+        default: true
+      include_desktop:
+        description: 'Include Desktop (JVM) target'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
 
 jobs:
-  setup:
+  initialize:
+    name: Rewrite placeholders + prune unselected platforms
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Replace Project Name Placeholders
+      - name: Validate inputs
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
+          INC_AND: ${{ inputs.include_android }}
+          INC_IOS: ${{ inputs.include_ios }}
+          INC_WEB: ${{ inputs.include_web }}
+          INC_DSK: ${{ inputs.include_desktop }}
         run: |
-          # Update the team manifest for the Copilot ecosystem
-          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" manifest.json
-          
-          # Update Gradle settings
-          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" settings.gradle.kts
-          
-          # Update Copilot instructions context
-          sed -i "s/{{PROJECT_NAME}}/${{ github.event.inputs.project_name }}/g" .github/instructions/project.instructions.md
+          set -euo pipefail
+          if [[ ! "$PROJECT_NAME" =~ ^[A-Za-z][A-Za-z0-9_-]*$ ]]; then
+            echo "::error::project_name must start with a letter and contain only [A-Za-z0-9_-]."
+            exit 1
+          fi
+          if [[ ! "$PACKAGE_NAME" =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$ ]]; then
+            echo "::error::package_name must be a valid dotted lowercase Kotlin package (e.g. com.acme.app)."
+            exit 1
+          fi
+          if [[ "$INC_AND" != "true" && "$INC_IOS" != "true" && "$INC_WEB" != "true" && "$INC_DSK" != "true" ]]; then
+            echo "::error::At least one platform checkbox must be enabled."
+            exit 1
+          fi
 
-      - name: Replace Package Name and Refactor Directories
+      - name: Rewrite placeholders
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
         run: |
-          # Update the ViewModel scaffolding script
-          sed -i "s/{{PACKAGE_NAME}}/${{ github.event.inputs.package_name }}/g" scripts/generate_viewmodel.sh
-          
-          # Update build.gradle.kts namespace
-          sed -i "s/{{PACKAGE_NAME}}/${{ github.event.inputs.package_name }}/g" composeApp/build.gradle.kts
-          
-          # Note: A real-world script here would also need to use 'mkdir -p' and 'mv' 
-          # to physically restructure the /src/commonMain/kotlin/{{PACKAGE_NAME}} directories.
+          set -euo pipefail
+          PACKAGE_PATH="${PACKAGE_NAME//./\/}"
+          echo "PACKAGE_PATH=$PACKAGE_PATH" >> "$GITHUB_ENV"
 
-      - name: Commit and Clean Up
+          mapfile -t FILES < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+            -e '{{PROJECT_NAME}}' -e '{{PACKAGE_NAME}}' -e '{{PACKAGE_PATH}}' . || true)
+          for f in "${FILES[@]}"; do
+            sed -i \
+              -e "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" \
+              -e "s|{{PACKAGE_NAME}}|${PACKAGE_NAME}|g" \
+              -e "s|{{PACKAGE_PATH}}|${PACKAGE_PATH}|g" \
+              "$f"
+          done
+
+          find . -type f -name '*.kt' -not -path './build/*' -not -path './.gradle/*' \
+            -exec sed -i "s|org\.company\.app|${PACKAGE_NAME}|g" {} +
+
+          for module in sharedUI androidApp desktopApp webApp iosApp; do
+            for src_root in "$module"/src/*/kotlin; do
+              [ -d "$src_root/org/company/app" ] || continue
+              mkdir -p "$src_root/$PACKAGE_PATH"
+              shopt -s dotglob nullglob
+              mv "$src_root/org/company/app/"* "$src_root/$PACKAGE_PATH/" 2>/dev/null || true
+              shopt -u dotglob nullglob
+              rm -rf "$src_root/org"
+            done
+          done
+
+      - name: Prune unselected platforms
+        env:
+          INC_AND: ${{ inputs.include_android }}
+          INC_IOS: ${{ inputs.include_ios }}
+          INC_WEB: ${{ inputs.include_web }}
+          INC_DSK: ${{ inputs.include_desktop }}
         run: |
-          git config user.name "github-actions[bot]"
+          set -euo pipefail
+
+          delete_region() {
+            local plat="$1"
+            find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
+              -not -path './build/*' -not -path './.gradle/*' \
+              -exec sed -i "/\/\/ region ${plat}\b/,/\/\/ endregion ${plat}\b/d" {} +
+          }
+
+          drop_module() {
+            local module="$1"
+            rm -rf "$module"
+            sed -i "/include(\":${module}\")/d" settings.gradle.kts
+          }
+
+          if [ "$INC_AND" != "true" ]; then
+            delete_region android
+            drop_module androidApp
+          fi
+          if [ "$INC_IOS" != "true" ]; then
+            delete_region ios
+            drop_module iosApp
+          fi
+          if [ "$INC_WEB" != "true" ]; then
+            delete_region web
+            drop_module webApp
+          fi
+          if [ "$INC_DSK" != "true" ]; then
+            delete_region desktop
+            drop_module desktopApp
+          fi
+
+      - name: Persist .template.config
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
+          INC_AND: ${{ inputs.include_android }}
+          INC_IOS: ${{ inputs.include_ios }}
+          INC_WEB: ${{ inputs.include_web }}
+          INC_DSK: ${{ inputs.include_desktop }}
+        run: |
+          cat > .template.config <<EOF
+          # Generated by .github/workflows/init.yml — do not edit by hand.
+          PROJECT_NAME=${PROJECT_NAME}
+          PACKAGE_NAME=${PACKAGE_NAME}
+          INCLUDE_ANDROID=${INC_AND}
+          INCLUDE_IOS=${INC_IOS}
+          INCLUDE_WEB=${INC_WEB}
+          INCLUDE_DESKTOP=${INC_DSK}
+          EOF
+
+      - name: Self-destruct init workflow
+        run: git rm .github/workflows/init.yml
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore: initialize KMP project as ${{ github.event.inputs.project_name }}"
-          
-          # Optional: Delete this workflow file so it doesn't clutter the new repo
-          git rm .github/workflows/init.yml
-          git commit -m "chore: remove initialization workflow"
+          git add -A
+          git commit -m "chore: initialize ${{ inputs.project_name }} from template"
           git push
