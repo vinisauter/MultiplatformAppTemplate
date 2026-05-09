@@ -20,7 +20,7 @@ You have **two equivalent ways** to initialize a new project from this template 
    | Input             | Description                                                                          |
    |-------------------|--------------------------------------------------------------------------------------|
    | `project_name`    | Human-readable name. Used in app labels, manifest, settings.                         |
-   | `package_name`    | Dotted Kotlin package (e.g. `com.acme.app`). Used as namespace + applicationId root. |
+   | `package_name`    | Dotted Kotlin package (e.g. `com.myapp`). Used as namespace + applicationId root. |
    | `include_android` | Keep the `:androidApp` module + Android target.                                      |
    | `include_ios`     | Keep the `:iosApp` module + Apple Kotlin/Native targets.                             |
    | `include_web`     | Keep the `:webApp` module + JS/WasmJS targets.                                       |
@@ -35,63 +35,59 @@ You have **two equivalent ways** to initialize a new project from this template 
 
 If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and **automatically chains into `team.install`** at the end.
 
-The single block below clones the template, detaches its history, points the remote at *your* repository, runs the init script, and pushes the first commit. Replace `my-app`, `ImoBull`, `com.acme.app`, and the remote URL with your own values. The `INCLUDE_*` flags are toggled to whatever you want to keep.
+The block below clones the template, detaches its history, points the remote at *your* repository, runs the init script, and pushes the first commit. Replace `my-app`, `MyApp`, `com.myapp`, and the remote URL with your own values. The `INCLUDE_*` flags are toggled to whatever you want to keep.
 
 > 💡 If you prefer to **rewrite** the template's history instead of dropping it (so blame still points at the template authors), replace `rm -rf .git && git init -b main` with [`git filter-repo --force`](https://github.com/newren/git-filter-repo) (or, on systems without it, `git filter-branch --force --prune-empty --commit-filter '...'`). For most users, dropping the history is simpler and is what's shown below.
 
 #### macOS / Linux
 
 ```bash
-# 1. Clone, detach history, repoint origin.
+# 1. Clone the template.
 git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
 cd my-app
-rm -rf .git
-git init -b main
-git remote add origin git@github.com:<you>/<your-new-repo>.git
 
-# 2. Make the scripts executable (Git on macOS/Linux preserves the bit, but a fresh
+# 2. Replace the template's history with a fresh repo pointed at your remote.
+rm -rf .git && git init -b main && git remote add origin git@github.com:<you>/<your-new-repo>.git
+
+# 3. Make the scripts executable (Git on macOS/Linux preserves the bit, but a fresh
 #    download via ZIP/Windows clone may strip it).
 chmod +x scripts/init.sh scripts/team.install.sh scripts/hooks/*.sh
 
-# 3. Run init (validates inputs, rewrites placeholders, prunes platforms,
+# 4. Run init (validates inputs, rewrites placeholders, prunes platforms,
 #    writes .template.config, then chains into scripts/team.install.sh).
 bash scripts/init.sh \
-  --project-name "ImoBull" \
-  --package-name "com.acme.app" \
+  --project-name "MyApp" \
+  --package-name "com.myapp" \
   --android true --ios true --web true --desktop true
 
-# 4. Commit + push.
-git add -A
-git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
-git push -u origin main
+# 5. Commit + push.
+git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
 
-# 5. Open in Android Studio (optional).
+# 6. Open in Android Studio (optional).
 open -a "Android Studio" .
 ```
 
 #### Windows (Windows PowerShell 5.1 or PowerShell 7+)
 
 ```powershell
-# 1. Clone, detach history, repoint origin.
+# 1. Clone the template.
 git clone https://github.com/vinisauter/MultiplatformAppTemplate.git my-app
 Set-Location my-app
-Remove-Item -Recurse -Force .git
-git init -b main
-git remote add origin git@github.com:<you>/<your-new-repo>.git
 
-# 2. Run init (validates inputs, rewrites placeholders, prunes platforms,
+# 2. Replace the template's history with a fresh repo pointed at your remote.
+Remove-Item -Recurse -Force .git; git init -b main; git remote add origin git@github.com:<you>/<your-new-repo>.git
+
+# 3. Run init (validates inputs, rewrites placeholders, prunes platforms,
 #    writes .template.config, then chains into scripts\team.install.ps1).
 powershell -File scripts/init.ps1 `
-  -ProjectName "ImoBull" `
-  -PackageName "com.acme.app" `
+  -ProjectName "MyApp" `
+  -PackageName "com.myapp" `
   -IncludeAndroid:$true -IncludeIos:$true -IncludeWeb:$true -IncludeDesktop:$true
 
-# 3. Commit + push.
-git add -A
-git commit -m "chore: initialize ImoBull from MultiplatformAppTemplate"
-git push -u origin main
+# 4. Commit + push.
+git add -A; git commit -m "chore: initialize MyApp from MultiplatformAppTemplate"; git push -u origin main
 
-# 4. Open in Android Studio (optional).
+# 5. Open in Android Studio (optional).
 Start-Process "studio64.exe" -ArgumentList (Get-Location).Path
 ```
 
