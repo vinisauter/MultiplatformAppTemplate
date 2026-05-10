@@ -14,9 +14,6 @@
 param(
     [string]$ProjectName,
     [string]$PackageName,
-    # Accept as string so the script works with `powershell -File`
-    # (which always passes args as strings) and with friendly forms like
-    # `-IncludeAndroid:true`, `-IncludeAndroid yes`, `-IncludeAndroid 1`, or `-IncludeAndroid:$true`.
     [string]$IncludeAndroid,
     [string]$IncludeIos,
     [string]$IncludeWeb,
@@ -36,7 +33,7 @@ function Read-StringIfEmpty {
 
 function ConvertTo-NullableBool {
     param([string]$Value)
-    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
     switch -Regex ($Value.Trim().ToLowerInvariant()) {
         '^(1|true|t|yes|y|\$true)$'  { return $true }
         '^(0|false|f|no|n|\$false)$' { return $false }
@@ -47,25 +44,20 @@ function ConvertTo-NullableBool {
     }
 }
 
-function Read-BoolIfNull {
-    param([string]$Current, [string]$Prompt)
-    $parsed = ConvertTo-NullableBool $Current
-    if ($null -eq $parsed) {
-        $ans = Read-Host "$Prompt [Y/n]"
-        switch -Regex ($ans) {
-            '^(n|no|false)$' { return $false }
-            default          { return $true }
-        }
-    }
-    return $parsed
-}
-
 $ProjectName    = Read-StringIfEmpty $ProjectName 'Project name (e.g. MyApp)'
 $PackageName    = Read-StringIfEmpty $PackageName 'Package name (e.g. com.myapp)'
-$IncludeAndroid = Read-BoolIfNull    $IncludeAndroid 'Include Android target?'
-$IncludeIos     = Read-BoolIfNull    $IncludeIos     'Include iOS target?'
-$IncludeWeb     = Read-BoolIfNull    $IncludeWeb     'Include Web target?'
-$IncludeDesktop = Read-BoolIfNull    $IncludeDesktop 'Include Desktop target?'
+[bool]$android  = ConvertTo-NullableBool     $IncludeAndroid 'Include Android target?'
+[bool]$ios      = ConvertTo-NullableBool     $IncludeIos     'Include iOS target?'
+[bool]$web      = ConvertTo-NullableBool     $IncludeWeb     'Include Web target?'
+[bool]$desktop  = ConvertTo-NullableBool     $IncludeDesktop 'Include Desktop target?'
+
+# Log the values of the platform include variables before removal logic
+Write-Host "[DEBUG] ProjectName: $ProjectName" -ForegroundColor Magenta
+Write-Host "[DEBUG] PackageName: $PackageName" -ForegroundColor Magenta
+Write-Host "[DEBUG] IncludeAndroid: $android" -ForegroundColor Magenta
+Write-Host "[DEBUG] IncludeIos: $ios" -ForegroundColor Magenta
+Write-Host "[DEBUG] IncludeWeb: $web" -ForegroundColor Magenta
+Write-Host "[DEBUG] IncludeDesktop: $desktop" -ForegroundColor Magenta
 
 # ---- Validation ----
 if ($ProjectName -notmatch '^[A-Za-z][A-Za-z0-9_-]*$') {
@@ -76,7 +68,7 @@ if ($PackageName -notmatch '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$') {
     Write-Error 'package_name must be a valid dotted lowercase Kotlin package (e.g. com.myapp).'
     exit 1
 }
-if (-not ($IncludeAndroid -or $IncludeIos -or $IncludeWeb -or $IncludeDesktop)) {
+if (-not ($android -or $ios -or $web -or $desktop)) {
     Write-Error 'At least one platform must be enabled.'
     exit 1
 }
@@ -91,7 +83,7 @@ Write-Host " Initializing template:" -ForegroundColor Cyan
 Write-Host "   project_name = $ProjectName"
 Write-Host "   package_name = $PackageName"
 Write-Host "   package_path = $PackagePath"
-Write-Host "   android=$IncludeAndroid  ios=$IncludeIos  web=$IncludeWeb  desktop=$IncludeDesktop"
+Write-Host "   android=$android  ios=$ios  web=$web  desktop=$desktop"
 Write-Host ""
 
 function Get-RepoTextFiles {
@@ -152,29 +144,107 @@ foreach ($module in @('sharedUI', 'androidApp', 'desktopApp', 'webApp', 'iosApp'
         Where-Object { Test-Path $_ }
     foreach ($srcRoot in $sourceRoots) {
         $oldPkg = Join-Path $srcRoot 'org/company/app'
-        if (-not (Test-Path $oldPkg)) { continue }
         $newPkg = Join-Path $srcRoot $PackagePath
+        Write-Host "[STEP 2b] oldPkg: $oldPkg" -ForegroundColor Cyan
+        Write-Host "[STEP 2b] newPkg: $newPkg" -ForegroundColor Cyan
+        if (-not (Test-Path $oldPkg)) {
+            Write-Host "[STEP 2b] Skipping: $oldPkg does not exist." -ForegroundColor DarkGray
+            continue
+        }
         try {
-            New-Item -ItemType Directory -Force -Path $newPkg | Out-Null
+            if (-not (Test-Path $newPkg)) {
+                New-Item -ItemType Directory -Force -Path $newPkg | Out-Null
+            } else {
+                Write-Host "[STEP 2b] $newPkg already exists, skipping directory creation." -ForegroundColor DarkGray
+            }
             Get-ChildItem -Path $oldPkg -Force | ForEach-Object {
+                $dest = Join-Path $newPkg $_.Name
+                if (Test-Path $dest) {
+                    Write-Host "[STEP 2b] Removing existing file before move: $dest" -ForegroundColor DarkGray
+                    Remove-Item -Force $dest
+                }
                 Move-Item -Force -Path $_.FullName -Destination $newPkg
             }
             Remove-Item -Recurse -Force (Join-Path $srcRoot 'org')
         } catch {
             $step2bSuccess = $false
-            Write-Error "[STEP 2b] Failed to move/rename in $srcRoot"
+            Write-Error "[STEP 2b] Failed to move/rename in $srcRoot. Exception: $($_.Exception.Message)"
         }
     }
 }
+
 if ($step2bSuccess) { Write-Host 'STEP 2b: Success' -ForegroundColor Green } else { Write-Error 'STEP 2b: Failed' }
 
 Write-Host 'STEP 3: Pruning unselected platforms...'
 $step3Success = $true
-# ...existing code for Remove-Region and Remove-ModuleDir, with error logging as previously patched...
-if (-not $IncludeAndroid) { Write-Host '-> Removing Android target...'; Remove-Region 'android'; Remove-ModuleDir 'androidApp' }
-if (-not $IncludeIos)     { Write-Host '-> Removing iOS target...';     Remove-Region 'ios';     Remove-ModuleDir 'iosApp' }
-if (-not $IncludeWeb)     { Write-Host '-> Removing Web target...';     Remove-Region 'web';     Remove-ModuleDir 'webApp' }
-if (-not $IncludeDesktop) { Write-Host '-> Removing Desktop target...'; Remove-Region 'desktop'; Remove-ModuleDir 'desktopApp' }
+
+function Remove-Region {
+    param([string]$Platform)
+    Write-Host "[Remove-Region] Called with Platform='$Platform'" -ForegroundColor Yellow
+    $startMarker = "// region $Platform"
+    $endMarker   = "// endregion $Platform"
+    Write-Host "[Remove-Region] Start marker: '$startMarker' | End marker: '$endMarker'" -ForegroundColor Yellow
+    $files = Get-ChildItem -Recurse -File | Where-Object {
+        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts' -or $_.Extension -eq '.kt') -and
+        $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
+    }
+    Write-Host "[Remove-Region] Files to process: $($files.Count)" -ForegroundColor Yellow
+    foreach ($file in $files) {
+        Write-Host "[Remove-Region] Processing file: $($file.FullName)" -ForegroundColor Yellow
+        try {
+            $lines = [System.IO.File]::ReadAllLines($file.FullName)
+            $out = New-Object System.Collections.Generic.List[string]
+            $inside = $false
+            $changed = $false
+            $lineNum = 0
+            foreach ($line in $lines) {
+                $lineNum++
+                if ($line -match '^\s*' + [Regex]::Escape($startMarker) + '\b') {
+                    Write-Host "[Remove-Region] Entering region at line $lineNum in $($file.Name)" -ForegroundColor Cyan
+                    $inside = $true;  $changed = $true; continue
+                }
+                if ($line -match '^\s*' + [Regex]::Escape($endMarker)   + '\b') {
+                    Write-Host "[Remove-Region] Exiting region at line $lineNum in $($file.Name)" -ForegroundColor Cyan
+                    $inside = $false; $changed = $true; continue
+                }
+                if (-not $inside) { $out.Add($line) }
+            }
+            if ($changed) {
+                [System.IO.File]::WriteAllLines($file.FullName, $out)
+                Write-Host "   - pruned // region $Platform from $($file.FullName.Substring($RepoRoot.Length + 1))" -ForegroundColor Green
+            } else {
+                Write-Host "[Remove-Region] No region found in $($file.Name)" -ForegroundColor DarkGray
+            }
+        } catch {
+            $script:step3Success = $false
+            Write-Error "[STEP 3] Failed to prune region $Platform in $($file.FullName)"
+        }
+    }
+}
+
+function Remove-ModuleDir {
+    param([string]$Module)
+    try {
+        if (Test-Path $Module) {
+            Remove-Item -Recurse -Force $Module
+        }
+        $settings = 'settings.gradle.kts'
+        if (Test-Path $settings) {
+            $lines = [System.IO.File]::ReadAllLines($settings) | Where-Object {
+                $_ -notmatch [Regex]::Escape("include(`":$Module`")")
+            }
+            [System.IO.File]::WriteAllLines($settings, $lines)
+        }
+    } catch {
+        $script:step3Success = $false
+        Write-Error "[STEP 3] Failed to remove module dir $Module"
+    }
+}
+
+if (-not $android) { Write-Host '-> Removing Android target...'; Remove-Region 'android'; Remove-ModuleDir 'androidApp' }
+if (-not $ios)     { Write-Host '-> Removing iOS target...';     Remove-Region 'ios';     Remove-ModuleDir 'iosApp' }
+if (-not $web)     { Write-Host '-> Removing Web target...';     Remove-Region 'web';     Remove-ModuleDir 'webApp' }
+if (-not $desktop) { Write-Host '-> Removing Desktop target...'; Remove-Region 'desktop'; Remove-ModuleDir 'desktopApp' }
 if ($step3Success) { Write-Host 'STEP 3: Success' -ForegroundColor Green } else { Write-Error 'STEP 3: Failed' }
 
 # ---- 4. Write .template.config ----
@@ -185,10 +255,10 @@ try {
         "# Generated by scripts/init.ps1 - do not edit by hand.",
         "PROJECT_NAME=$ProjectName",
         "PACKAGE_NAME=$PackageName",
-        "INCLUDE_ANDROID=$($IncludeAndroid.ToString().ToLower())",
-        "INCLUDE_IOS=$($IncludeIos.ToString().ToLower())",
-        "INCLUDE_WEB=$($IncludeWeb.ToString().ToLower())",
-        "INCLUDE_DESKTOP=$($IncludeDesktop.ToString().ToLower())"
+        "INCLUDE_ANDROID=$($android.ToString().ToLower())",
+        "INCLUDE_IOS=$($ios.ToString().ToLower())",
+        "INCLUDE_WEB=$($web.ToString().ToLower())",
+        "INCLUDE_DESKTOP=$($desktop.ToString().ToLower())"
     ) -join "`n"
     [System.IO.File]::WriteAllText('.template.config', $templateConfig + "`n")
 } catch {
@@ -200,13 +270,13 @@ if ($step4Success) { Write-Host 'STEP 4: Success' -ForegroundColor Green } else 
 # ---- 5. Self-destruct: remove init workflow + sibling init scripts ----
 Write-Host 'STEP 5: Removing init workflow + scripts/init.* ...'
 $step5Success = $true
-try {
-    Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
-    Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
-} catch {
-    $step5Success = $false
-    Write-Error '[STEP 5] Failed to remove init workflow or init.sh'
-}
+# try {
+#     Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
+#     Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
+# } catch {
+#     $step5Success = $false
+#     Write-Error '[STEP 5] Failed to remove init workflow or init.sh'
+# }
 $selfPath = $MyInvocation.MyCommand.Path
 if ($step5Success) { Write-Host 'STEP 5: Success' -ForegroundColor Green } else { Write-Error 'STEP 5: Failed' }
 
