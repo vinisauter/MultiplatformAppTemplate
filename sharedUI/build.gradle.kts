@@ -20,23 +20,19 @@ kotlin {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
     }
     // endregion android
-
     // region desktop
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
     }
     // endregion desktop
-
     // region web
     js { browser() }
     wasmJs { browser() }
     // endregion web
-
     // region ios
     iosArm64()
     iosSimulatorArm64()
     // endregion ios
-
     sourceSets {
         commonMain.dependencies {
             api(libs.compose.runtime)
@@ -58,6 +54,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil)
             implementation(libs.coil.network.ktor)
             implementation(libs.multiplatformSettings)
@@ -73,7 +70,6 @@ kotlin {
             implementation(libs.compose.ui.test)
             implementation(libs.kotlinx.coroutines.test)
         }
-
         // region android
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
@@ -82,7 +78,6 @@ kotlin {
             implementation(libs.koin.android)
         }
         // endregion android
-
         // region desktop
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -91,22 +86,18 @@ kotlin {
             implementation(libs.kstore.file)
         }
         // endregion desktop
-
         // region web
         webMain.dependencies {
             implementation(libs.kstore.storage)
         }
         // endregion web
-
         // region ios
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.kstore.file)
         }
         // endregion ios
-
     }
-
     // region ios
     targets
         .withType<KotlinNativeTarget>()
@@ -138,7 +129,6 @@ android {
     }
 }
 // endregion android
-
 buildConfig {
     // BuildConfig configuration here.
     // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts

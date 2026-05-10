@@ -222,6 +222,49 @@ function Remove-Region {
     }
 }
 
+function Remove-RegionMarkers {
+    param([string]$Platform)
+    Write-Host "[Remove-RegionMarkers] Called with Platform='$Platform'" -ForegroundColor Yellow
+    $startMarker = "// region $Platform"
+    $endMarker   = "// endregion $Platform"
+    Write-Host "[Remove-RegionMarkers] Start marker: '$startMarker' | End marker: '$endMarker'" -ForegroundColor Yellow
+    $files = Get-ChildItem -Recurse -File | Where-Object {
+        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts' -or $_.Extension -eq '.kt') -and
+        $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
+    }
+    Write-Host "[Remove-RegionMarkers] Files to process: $($files.Count)" -ForegroundColor Yellow
+    foreach ($file in $files) {
+        Write-Host "[Remove-RegionMarkers] Processing file: $($file.FullName)" -ForegroundColor Yellow
+        try {
+            $lines = [System.IO.File]::ReadAllLines($file.FullName)
+            $out = New-Object System.Collections.Generic.List[string]
+            $changed = $false
+            $lineNum = 0
+            foreach ($line in $lines) {
+                $lineNum++
+                if ($line -match '^\s*' + [Regex]::Escape($startMarker) + '\b') {
+                    Write-Host "[Remove-RegionMarkers] Removing start marker at line $lineNum in $($file.Name)" -ForegroundColor Cyan
+                    $changed = $true; continue
+                }
+                if ($line -match '^\s*' + [Regex]::Escape($endMarker) + '\b') {
+                    Write-Host "[Remove-RegionMarkers] Removing end marker at line $lineNum in $($file.Name)" -ForegroundColor Cyan
+                    $changed = $true; continue
+                }
+                $out.Add($line)
+            }
+            if ($changed) {
+                [System.IO.File]::WriteAllLines($file.FullName, $out)
+                Write-Host "   - cleaned region markers for $Platform in $($file.FullName.Substring($RepoRoot.Length + 1))" -ForegroundColor Green
+            } else {
+                Write-Host "[Remove-RegionMarkers] No region markers found in $($file.Name)" -ForegroundColor DarkGray
+            }
+        } catch {
+            $script:step3Success = $false
+            Write-Error "[STEP 3] Failed to clean region markers for $Platform in $($file.FullName)"
+        }
+    }
+}
+
 function Remove-ModuleDir {
     param([string]$Module)
     try {
@@ -241,10 +284,10 @@ function Remove-ModuleDir {
     }
 }
 
-if (-not $android) { Write-Host '-> Removing Android target...'; Remove-Region 'android'; Remove-ModuleDir 'androidApp' }
-if (-not $ios)     { Write-Host '-> Removing iOS target...';     Remove-Region 'ios';     Remove-ModuleDir 'iosApp' }
-if (-not $web)     { Write-Host '-> Removing Web target...';     Remove-Region 'web';     Remove-ModuleDir 'webApp' }
-if (-not $desktop) { Write-Host '-> Removing Desktop target...'; Remove-Region 'desktop'; Remove-ModuleDir 'desktopApp' }
+if (-not $android) { Write-Host '-> Removing Android target...'; Remove-Region 'android'; Remove-ModuleDir 'androidApp' } else { Write-Host '-> Cleaning Android region markers...'; Remove-RegionMarkers 'android' }
+if (-not $ios)     { Write-Host '-> Removing iOS target...';     Remove-Region 'ios';     Remove-ModuleDir 'iosApp' }     else { Write-Host '-> Cleaning iOS region markers...';     Remove-RegionMarkers 'ios' }
+if (-not $web)     { Write-Host '-> Removing Web target...';     Remove-Region 'web';     Remove-ModuleDir 'webApp' }     else { Write-Host '-> Cleaning Web region markers...';     Remove-RegionMarkers 'web' }
+if (-not $desktop) { Write-Host '-> Removing Desktop target...'; Remove-Region 'desktop'; Remove-ModuleDir 'desktopApp' } else { Write-Host '-> Cleaning Desktop region markers...'; Remove-RegionMarkers 'desktop' }
 if ($step3Success) { Write-Host 'STEP 3: Success' -ForegroundColor Green } else { Write-Error 'STEP 3: Failed' }
 
 # ---- 4. Write .template.config ----
