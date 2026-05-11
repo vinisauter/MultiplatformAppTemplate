@@ -8,7 +8,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# {{PACKAGE_PATH}} is replaced during template initialization (e.g. com/imobull/app).
 $PackagePath = '{{PACKAGE_PATH}}'
 $PackageName = '{{PACKAGE_NAME}}'
 $FeatureLower = $FeatureName.ToLower()

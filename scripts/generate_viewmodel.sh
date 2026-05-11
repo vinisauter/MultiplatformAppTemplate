@@ -11,7 +11,6 @@ if [ -z "$FEATURE_NAME" ]; then
   exit 1
 fi
 
-# {{PACKAGE_PATH}} is replaced during template initialization (e.g. com/imobull/app).
 PACKAGE_PATH="{{PACKAGE_PATH}}"
 PACKAGE_NAME="{{PACKAGE_NAME}}"
 FEATURE_LOWER="$(echo "$FEATURE_NAME" | tr '[:upper:]' '[:lower:]')"
