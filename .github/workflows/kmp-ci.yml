@@ -52,7 +52,7 @@ jobs:
           gradle-version: wrapper
 
       - name: Ktlint + JVM tests + common metadata
-        run: ./gradlew ktlintCheck check jvmTest compileCommonMainKotlinMetadata --parallel
+        run: ./gradlew ktlintCheck check compileCommonMainKotlinMetadata --parallel
 
   ios-build:
     name: iOS Native Compile (macOS)

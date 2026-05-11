@@ -101,7 +101,7 @@ After cloning the initialized repo:
 - **macOS / Linux:** `bash scripts/team.install.sh`
 - **Windows (Windows PowerShell 5.1 or PowerShell 7+):** `powershell -File scripts/team.install.ps1`
 
-This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktlint + ArchUnit) and `pre-push` (`check jvmTest compileCommonMainKotlinMetadata`) Git hooks, and validates JDK 17+ (and `kdoctor` on macOS for iOS work).
+This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktlint + ArchUnit) and `pre-push` (`check compileCommonMainKotlinMetadata`) Git hooks, and validates JDK 17+ (and `kdoctor` on macOS for iOS work).
 
 ## 📁 Repository layout
 

@@ -5,9 +5,9 @@
 set -euo pipefail
 echo "🛡️  pre-commit: running ktlint..."
 
-./gradlew ktlintFormat --quiet
-
-# Optional: enforce Clean Architecture via a custom JVM test once you write it.
-# ./gradlew :sharedUI:jvmTest --tests "*ArchitectureRulesTest" --quiet
+./gradlew ktlintFormat --quiet || {
+  echo "❌ pre-commit checks failed. Please run './gradlew ktlintFormat' locally to fix formatting issues before committing."
+  exit 1
+}
 
 echo "✅ pre-commit checks passed."

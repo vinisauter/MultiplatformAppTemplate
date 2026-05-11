@@ -17,7 +17,7 @@ You diagnose and repair conflicts in `gradle/libs.versions.toml`, KSP, and Compo
 
 1. Run `./gradlew dependencies --configuration commonMainResolvableDependenciesMetadata` to identify the conflicting transitive.
 2. Bump versions in `gradle/libs.versions.toml` only — never inline a version in a `build.gradle.kts`.
-3. Run `./gradlew check jvmTest compileCommonMainKotlinMetadata --parallel` locally before pushing.
+3. Run `./gradlew check compileCommonMainKotlinMetadata --parallel` locally before pushing.
 4. If conflict involves Apple targets, also run `./gradlew compileKotlinIosSimulatorArm64`.
 
 ## Output format
