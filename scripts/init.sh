@@ -123,11 +123,20 @@ if [ "$step1_success" = true ]; then echo "STEP 1: Success"; else echo "STEP 1: 
 # -----------------------------------------------------------------------------
 # 2. Rewrite Kotlin package declarations and rename source directories.
 # -----------------------------------------------------------------------------
-echo "📦 Renaming Kotlin package directories org.company.app -> $PACKAGE_NAME ..."
+echo "📦 Renaming package org.company.app -> $PACKAGE_NAME in all text files..."
 step2_success=true
-find . -type f -name '*.kt' -not -path './build/*' -not -path './.gradle/*' \
-  -exec sed -i.bak "s|org\\.company\\.app|${PACKAGE_NAME}|g" {} + || step2_success=false
-find . -type f -name '*.kt.bak' -delete
+# Replace in ALL text files (covers .kt, .swift, .pbxproj, .plist, .xml, .gradle.kts, etc.)
+mapfile -t PKG_FILES < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+  "org\.company\.app" . || true)
+for f in "${PKG_FILES[@]}"; do
+  if sed -i.bak "s|org\\.company\\.app|${PACKAGE_NAME}|g" "$f"; then
+    rm -f "$f.bak"
+  else
+    echo "[STEP 2] Failed to rewrite $f" >&2
+    step2_success=false
+  fi
+  rm -f "$f.bak"
+done
 
 for module in sharedUI androidApp desktopApp webApp iosApp; do
   for src_root in "$module"/src/*/kotlin; do

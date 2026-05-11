@@ -139,7 +139,7 @@ compose.resources {
     // The init script rewrites `org.company.app` -> the user's package, so the import
     // path stays stable as `<your.package>.resources.Res` after initialization.
     publicResClass = false
-    packageOfResClass = "{{PACKAGE_NAME}}.resources"
+    packageOfResClass = "org.company.app.resources"
 }
 
 room {

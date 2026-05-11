@@ -119,19 +119,18 @@ foreach ($file in Get-RepoTextFiles) {
 if ($step1Success) { Write-Host 'STEP 1: Success' -ForegroundColor Green } else { Write-Error 'STEP 1: Failed' }
 
 # ---- 2. Rewrite Kotlin package declarations + rename directories ----
-Write-Host "STEP 2: Renaming Kotlin package directories org.company.app -> $PackageName ..."
+Write-Host "STEP 2: Renaming package org.company.app -> $PackageName in all text files..."
 $step2Success = $true
-Get-ChildItem -Recurse -File -Filter *.kt | Where-Object {
-    $_.FullName -notmatch '\\(build|\.gradle)\\'
-} | ForEach-Object {
+# Use Get-RepoTextFiles so iOS (.pbxproj, .plist, .swift), XML, gradle files, etc. are all covered.
+foreach ($file in Get-RepoTextFiles) {
     try {
-        $content = [System.IO.File]::ReadAllText($_.FullName)
+        $content = [System.IO.File]::ReadAllText($file.FullName)
         if ($content.Contains('org.company.app')) {
-            [System.IO.File]::WriteAllText($_.FullName, $content.Replace('org.company.app', $PackageName))
+            [System.IO.File]::WriteAllText($file.FullName, $content.Replace('org.company.app', $PackageName))
         }
     } catch {
         $step2Success = $false
-        Write-Error "[STEP 2] Failed to process $($_.FullName)"
+        Write-Error "[STEP 2] Failed to process $($file.FullName)"
     }
 }
 if ($step2Success) { Write-Host 'STEP 2: Success' -ForegroundColor Green } else { Write-Error 'STEP 2: Failed' }
@@ -313,13 +312,13 @@ if ($step4Success) { Write-Host 'STEP 4: Success' -ForegroundColor Green } else 
 # ---- 5. Self-destruct: remove init workflow + sibling init scripts ----
 Write-Host 'STEP 5: Removing init workflow + scripts/init.* ...'
 $step5Success = $true
-# try {
-#     Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
-#     Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
-# } catch {
-#     $step5Success = $false
-#     Write-Error '[STEP 5] Failed to remove init workflow or init.sh'
-# }
+try {
+    Remove-Item -Force '.github/workflows/init.yml' -ErrorAction SilentlyContinue
+    Remove-Item -Force 'scripts/init.sh'             -ErrorAction SilentlyContinue
+} catch {
+    $step5Success = $false
+    Write-Error '[STEP 5] Failed to remove init workflow or init.sh'
+}
 $selfPath = $MyInvocation.MyCommand.Path
 if ($step5Success) { Write-Host 'STEP 5: Success' -ForegroundColor Green } else { Write-Error 'STEP 5: Failed' }
 

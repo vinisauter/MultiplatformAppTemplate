@@ -17,14 +17,14 @@ You have **two equivalent ways** to initialize a new project from this template 
 2. In the new repo, open **Actions → `Initialize KMP Project Template` → Run workflow**.
 3. Fill the inputs:
 
-   | Input             | Description                                                                          |
-   |-------------------|--------------------------------------------------------------------------------------|
-   | `project_name`    | Human-readable name. Used in app labels, manifest, settings.                         |
+   | Input             | Description                                                                       |
+   |-------------------|-----------------------------------------------------------------------------------|
+   | `project_name`    | Human-readable name. Used in app labels, manifest, settings.                      |
    | `package_name`    | Dotted Kotlin package (e.g. `com.myapp`). Used as namespace + applicationId root. |
-   | `include_android` | Keep the `:androidApp` module + Android target.                                      |
-   | `include_ios`     | Keep the `:iosApp` module + Apple Kotlin/Native targets.                             |
-   | `include_web`     | Keep the `:webApp` module + JS/WasmJS targets.                                       |
-   | `include_desktop` | Keep the `:desktopApp` module + JVM target.                                          |
+   | `include_android` | Keep the `:androidApp` module + Android target.                                   |
+   | `include_ios`     | Keep the `:iosApp` module + Apple Kotlin/Native targets.                          |
+   | `include_web`     | Keep the `:webApp` module + JS/WasmJS targets.                                    |
+   | `include_desktop` | Keep the `:desktopApp` module + JVM target.                                       |
 
 4. The workflow runs `scripts/init.sh --skip-install` with your inputs (the script rewrites placeholders, prunes any unselected platform via `// region <plat>` markers, writes `.template.config`, and self-destructs `init.yml` + the `init.{sh,ps1}` scripts), then commits and pushes the result.
 5. Pull the resulting commit locally and run the onboarding script (next section).
