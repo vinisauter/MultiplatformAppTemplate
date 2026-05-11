@@ -21,6 +21,7 @@ apollo = "4.4.3"
 kstore = "1.0.0"
 buildConfig = "6.0.9"
 materialKolor = "4.1.1"
+ktlint = "14.2.0"
 
 [libraries]
 
@@ -82,3 +83,4 @@ room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

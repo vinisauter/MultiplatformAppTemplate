@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.room)
     alias(libs.plugins.ksp)
     alias(libs.plugins.apollo)
