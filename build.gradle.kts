@@ -13,3 +13,20 @@ plugins {
     alias(libs.plugins.buildConfig).apply(false)
     alias(libs.plugins.ktlint).apply(false)
 }
+
+subprojects {
+    apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
+
+    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set("1.5.0")
+        android.set(false)
+        ignoreFailures.set(false)
+        verbose.set(true)
+        outputToConsole.set(true)
+        enableExperimentalRules.set(false)
+        reporters {
+            reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+            reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.HTML)
+        }
+    }
+}
