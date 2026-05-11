@@ -61,7 +61,7 @@ bash scripts/init.sh \
   --android true --ios true --web true --desktop true
 
 # 5. New git repo — first commit + push (continues from step 2).
-git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
+chmod +x ./gradlew && git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
 
 # 6. Open in Android Studio (optional).
 open -a "Android Studio" .

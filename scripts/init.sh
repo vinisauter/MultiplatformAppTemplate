@@ -103,7 +103,10 @@ echo ""
 # -----------------------------------------------------------------------------
 echo "🔁 Rewriting {{PROJECT_NAME}} / {{PACKAGE_NAME}} / {{PACKAGE_PATH}} placeholders..."
 step1_success=true
-mapfile -t FILES < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+FILES=()
+while IFS= read -r line; do
+  FILES+=("$line")
+done < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
   -e '{{PROJECT_NAME}}' -e '{{PACKAGE_NAME}}' -e '{{PACKAGE_PATH}}' . || true)
 for f in "${FILES[@]}"; do
   if sed -i.bak \
@@ -126,7 +129,10 @@ if [ "$step1_success" = true ]; then echo "STEP 1: Success"; else echo "STEP 1: 
 echo "📦 Renaming package org.company.app -> $PACKAGE_NAME in all text files..."
 step2_success=true
 # Replace in ALL text files (covers .kt, .swift, .pbxproj, .plist, .xml, .gradle.kts, etc.)
-mapfile -t PKG_FILES < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
+PKG_FILES=()
+while IFS= read -r line; do
+  PKG_FILES+=("$line")
+done < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
   "org\.company\.app" . || true)
 for f in "${PKG_FILES[@]}"; do
   if sed -i.bak "s|org\\.company\\.app|${PACKAGE_NAME}|g" "$f"; then
