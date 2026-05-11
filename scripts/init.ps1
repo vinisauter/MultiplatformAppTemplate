@@ -22,6 +22,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$DebugEnabled = $true
+
+function Write-DebugLog {
+    param([string]$Message)
+    if ($DebugEnabled) {
+        Write-Host "[DEBUG] $Message" -ForegroundColor Magenta
+    }
+}
 
 function Read-StringIfEmpty {
     param([string]$Current, [string]$Prompt)
@@ -33,7 +41,7 @@ function Read-StringIfEmpty {
 
 function ConvertTo-NullableBool {
     param([string]$Value)
-    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
     switch -Regex ($Value.Trim().ToLowerInvariant()) {
         '^(1|true|t|yes|y|\$true)$'  { return $true }
         '^(0|false|f|no|n|\$false)$' { return $false }
@@ -44,20 +52,31 @@ function ConvertTo-NullableBool {
     }
 }
 
+function Resolve-BoolWithDefault {
+    param(
+        [string]$InputValue,
+        [bool]$DefaultValue
+    )
+    $parsed = ConvertTo-NullableBool $InputValue
+    if ($null -eq $parsed) {
+        return $DefaultValue
+    }
+    return [bool]$parsed
+}
+
 $ProjectName    = Read-StringIfEmpty $ProjectName 'Project name (e.g. MyApp)'
 $PackageName    = Read-StringIfEmpty $PackageName 'Package name (e.g. com.myapp)'
-[bool]$android  = ConvertTo-NullableBool     $IncludeAndroid 'Include Android target?'
-[bool]$ios      = ConvertTo-NullableBool     $IncludeIos     'Include iOS target?'
-[bool]$web      = ConvertTo-NullableBool     $IncludeWeb     'Include Web target?'
-[bool]$desktop  = ConvertTo-NullableBool     $IncludeDesktop 'Include Desktop target?'
+[bool]$android  = Resolve-BoolWithDefault $IncludeAndroid $true
+[bool]$ios      = Resolve-BoolWithDefault $IncludeIos     $true
+[bool]$web      = Resolve-BoolWithDefault $IncludeWeb     $false
+[bool]$desktop  = Resolve-BoolWithDefault $IncludeDesktop $false
 
-# Log the values of the platform include variables before removal logic
-Write-Host "[DEBUG] ProjectName: $ProjectName" -ForegroundColor Magenta
-Write-Host "[DEBUG] PackageName: $PackageName" -ForegroundColor Magenta
-Write-Host "[DEBUG] IncludeAndroid: $android" -ForegroundColor Magenta
-Write-Host "[DEBUG] IncludeIos: $ios" -ForegroundColor Magenta
-Write-Host "[DEBUG] IncludeWeb: $web" -ForegroundColor Magenta
-Write-Host "[DEBUG] IncludeDesktop: $desktop" -ForegroundColor Magenta
+Write-DebugLog "ProjectName: $ProjectName"
+Write-DebugLog "PackageName: $PackageName"
+Write-DebugLog "IncludeAndroid: $android"
+Write-DebugLog "IncludeIos: $ios"
+Write-DebugLog "IncludeWeb: $web"
+Write-DebugLog "IncludeDesktop: $desktop"
 
 # ---- Validation ----
 if ($ProjectName -notmatch '^[A-Za-z][A-Za-z0-9_-]*$') {
@@ -96,7 +115,9 @@ function Get-RepoTextFiles {
 # ---- 1. Rewrite placeholders ----
 Write-Host 'STEP 1: Rewriting {{PROJECT_NAME}} / {{PACKAGE_NAME}} / {{PACKAGE_PATH}} placeholders...'
 $step1Success = $true
-foreach ($file in Get-RepoTextFiles) {
+$repoTextFiles = @(Get-RepoTextFiles)
+Write-DebugLog "Step 1 candidate files: $($repoTextFiles.Count)"
+foreach ($file in $repoTextFiles) {
     try {
         $content = [System.IO.File]::ReadAllText($file.FullName)
     } catch {
@@ -122,7 +143,8 @@ if ($step1Success) { Write-Host 'STEP 1: Success' -ForegroundColor Green } else 
 Write-Host "STEP 2: Renaming package org.company.app -> $PackageName in all text files..."
 $step2Success = $true
 # Use Get-RepoTextFiles so iOS (.pbxproj, .plist, .swift), XML, gradle files, etc. are all covered.
-foreach ($file in Get-RepoTextFiles) {
+Write-DebugLog "Step 2 candidate files: $($repoTextFiles.Count)"
+foreach ($file in $repoTextFiles) {
     try {
         $content = [System.IO.File]::ReadAllText($file.FullName)
         if ($content.Contains('org.company.app')) {
@@ -179,17 +201,15 @@ $step3Success = $true
 
 function Remove-Region {
     param([string]$Platform)
-    Write-Host "[Remove-Region] Called with Platform='$Platform'" -ForegroundColor Yellow
+    Write-DebugLog "Remove-Region platform='$Platform'"
     $startMarker = "// region $Platform"
     $endMarker   = "// endregion $Platform"
-    Write-Host "[Remove-Region] Start marker: '$startMarker' | End marker: '$endMarker'" -ForegroundColor Yellow
     $files = Get-ChildItem -Recurse -File | Where-Object {
-        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts' -or $_.Extension -eq '.kt') -and
+        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts') -and
         $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
     }
-    Write-Host "[Remove-Region] Files to process: $($files.Count)" -ForegroundColor Yellow
+    Write-DebugLog "Remove-Region files to process: $($files.Count)"
     foreach ($file in $files) {
-        Write-Host "[Remove-Region] Processing file: $($file.FullName)" -ForegroundColor Yellow
         try {
             $lines = [System.IO.File]::ReadAllLines($file.FullName)
             $out = New-Object System.Collections.Generic.List[string]
@@ -199,11 +219,9 @@ function Remove-Region {
             foreach ($line in $lines) {
                 $lineNum++
                 if ($line -match '^\s*' + [Regex]::Escape($startMarker) + '\b') {
-                    Write-Host "[Remove-Region] Entering region at line $lineNum in $($file.Name)" -ForegroundColor Cyan
                     $inside = $true;  $changed = $true; continue
                 }
                 if ($line -match '^\s*' + [Regex]::Escape($endMarker)   + '\b') {
-                    Write-Host "[Remove-Region] Exiting region at line $lineNum in $($file.Name)" -ForegroundColor Cyan
                     $inside = $false; $changed = $true; continue
                 }
                 if (-not $inside) { $out.Add($line) }
@@ -211,8 +229,6 @@ function Remove-Region {
             if ($changed) {
                 [System.IO.File]::WriteAllLines($file.FullName, $out)
                 Write-Host "   - pruned // region $Platform from $($file.FullName.Substring($RepoRoot.Length + 1))" -ForegroundColor Green
-            } else {
-                Write-Host "[Remove-Region] No region found in $($file.Name)" -ForegroundColor DarkGray
             }
         } catch {
             $script:step3Success = $false
@@ -223,17 +239,15 @@ function Remove-Region {
 
 function Remove-RegionMarkers {
     param([string]$Platform)
-    Write-Host "[Remove-RegionMarkers] Called with Platform='$Platform'" -ForegroundColor Yellow
+    Write-DebugLog "Remove-RegionMarkers platform='$Platform'"
     $startMarker = "// region $Platform"
     $endMarker   = "// endregion $Platform"
-    Write-Host "[Remove-RegionMarkers] Start marker: '$startMarker' | End marker: '$endMarker'" -ForegroundColor Yellow
     $files = Get-ChildItem -Recurse -File | Where-Object {
-        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts' -or $_.Extension -eq '.kt') -and
+        ($_.Name -eq 'build.gradle.kts' -or $_.Name -eq 'settings.gradle.kts') -and
         $_.FullName -notmatch '[\\/](build|\.gradle|\.git)[\\/]'
     }
-    Write-Host "[Remove-RegionMarkers] Files to process: $($files.Count)" -ForegroundColor Yellow
+    Write-DebugLog "Remove-RegionMarkers files to process: $($files.Count)"
     foreach ($file in $files) {
-        Write-Host "[Remove-RegionMarkers] Processing file: $($file.FullName)" -ForegroundColor Yellow
         try {
             $lines = [System.IO.File]::ReadAllLines($file.FullName)
             $out = New-Object System.Collections.Generic.List[string]
@@ -242,11 +256,9 @@ function Remove-RegionMarkers {
             foreach ($line in $lines) {
                 $lineNum++
                 if ($line -match '^\s*' + [Regex]::Escape($startMarker) + '\b') {
-                    Write-Host "[Remove-RegionMarkers] Removing start marker at line $lineNum in $($file.Name)" -ForegroundColor Cyan
                     $changed = $true; continue
                 }
                 if ($line -match '^\s*' + [Regex]::Escape($endMarker) + '\b') {
-                    Write-Host "[Remove-RegionMarkers] Removing end marker at line $lineNum in $($file.Name)" -ForegroundColor Cyan
                     $changed = $true; continue
                 }
                 $out.Add($line)
@@ -254,8 +266,6 @@ function Remove-RegionMarkers {
             if ($changed) {
                 [System.IO.File]::WriteAllLines($file.FullName, $out)
                 Write-Host "   - cleaned region markers for $Platform in $($file.FullName.Substring($RepoRoot.Length + 1))" -ForegroundColor Green
-            } else {
-                Write-Host "[Remove-RegionMarkers] No region markers found in $($file.Name)" -ForegroundColor DarkGray
             }
         } catch {
             $script:step3Success = $false

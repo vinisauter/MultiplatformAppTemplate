@@ -23,6 +23,13 @@ INC_IOS="true"
 INC_WEB="false"
 INC_DSK="false"
 SKIP_INSTALL="false"
+DEBUG="${DEBUG:-true}"
+
+debug() {
+  if [ "$DEBUG" = "true" ]; then
+    echo "[DEBUG] $*"
+  fi
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -69,6 +76,10 @@ prompt_yesno_if_empty INC_IOS "Include iOS target?"
 prompt_yesno_if_empty INC_WEB "Include Web target?"
 prompt_yesno_if_empty INC_DSK "Include Desktop target?"
 
+debug "Project name input: $PROJECT_NAME"
+debug "Package name input: $PACKAGE_NAME"
+debug "Include flags: android=$INC_AND ios=$INC_IOS web=$INC_WEB desktop=$INC_DSK"
+
 # -----------------------------------------------------------------------------
 # Validation
 # -----------------------------------------------------------------------------
@@ -108,6 +119,7 @@ while IFS= read -r line; do
   FILES+=("$line")
 done < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
   -e '{{PROJECT_NAME}}' -e '{{PACKAGE_NAME}}' -e '{{PACKAGE_PATH}}' . || true)
+debug "Step 1 files to rewrite: ${#FILES[@]}"
 for f in "${FILES[@]}"; do
   if sed -i.bak \
     -e "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" \
@@ -134,6 +146,7 @@ while IFS= read -r line; do
   PKG_FILES+=("$line")
 done < <(grep -rIl --exclude-dir=.git --exclude-dir=build --exclude-dir=.gradle \
   "org\.company\.app" . || true)
+debug "Step 2 files to rewrite: ${#PKG_FILES[@]}"
 for f in "${PKG_FILES[@]}"; do
   if sed -i.bak "s|org\\.company\\.app|${PACKAGE_NAME}|g" "$f"; then
     rm -f "$f.bak"
@@ -156,11 +169,8 @@ for module in sharedUI androidApp desktopApp webApp iosApp; do
     shopt -u dotglob nullglob
     rm -rf "$src_root/org"
   done
-
-  # Check if all moves were successful
-  if [ "$step2_success" = true ]; then echo "STEP 2: Success"; else echo "STEP 2: Failed" >&2; fi
-
 done
+if [ "$step2_success" = true ]; then echo "STEP 2: Success"; else echo "STEP 2: Failed" >&2; fi
 
 # -----------------------------------------------------------------------------
 # 3. Prune unselected platforms via // region <plat> markers + module dirs.
@@ -174,11 +184,33 @@ delete_region() {
     find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
       -not -path './build/*' -not -path './.gradle/*' -not -path './.git/*' -print0
   )
+  debug "Step 3 prune platform '$plat' files: ${#files[@]}"
   for f in "${files[@]}"; do
     if sed -i.bak "/^[[:space:]]*\/\/ region ${plat}\([^[:alnum:]_]\|$\)/,/^[[:space:]]*\/\/ endregion ${plat}\([^[:alnum:]_]\|$\)/d" "$f"; then
       rm -f "$f.bak"
     else
       echo "[STEP 3] Failed to prune region $plat in $f" >&2
+      step3_success=false
+    fi
+  done
+}
+
+clean_region_markers() {
+  local plat="$1"
+  local files=()
+  while IFS= read -r -d '' f; do files+=("$f"); done < <(
+    find . -type f \( -name 'build.gradle.kts' -o -name 'settings.gradle.kts' \) \
+      -not -path './build/*' -not -path './.gradle/*' -not -path './.git/*' -print0
+  )
+  debug "Step 3 clean markers platform '$plat' files: ${#files[@]}"
+  for f in "${files[@]}"; do
+    if sed -i.bak \
+      -e "/^[[:space:]]*\/\/ region ${plat}\([^[:alnum:]_]\|$\)/d" \
+      -e "/^[[:space:]]*\/\/ endregion ${plat}\([^[:alnum:]_]\|$\)/d" \
+      "$f"; then
+      rm -f "$f.bak"
+    else
+      echo "[STEP 3] Failed to clean region markers for $plat in $f" >&2
       step3_success=false
     fi
   done
@@ -197,10 +229,41 @@ drop_module() {
   rm -f settings.gradle.kts.bak
 }
 
-[ "$INC_AND" = "true" ] || { echo "✂️  Removing Android target..."; delete_region android; drop_module androidApp; }
-[ "$INC_IOS" = "true" ] || { echo "✂️  Removing iOS target...";     delete_region ios;     drop_module iosApp; }
-[ "$INC_WEB" = "true" ] || { echo "✂️  Removing Web target...";     delete_region web;     drop_module webApp; }
-[ "$INC_DSK" = "true" ] || { echo "✂️  Removing Desktop target..."; delete_region desktop; drop_module desktopApp; }
+if [ "$INC_AND" = "true" ]; then
+  echo "🧹 Cleaning Android region markers..."
+  clean_region_markers android
+else
+  echo "✂️  Removing Android target..."
+  delete_region android
+  drop_module androidApp
+fi
+
+if [ "$INC_IOS" = "true" ]; then
+  echo "🧹 Cleaning iOS region markers..."
+  clean_region_markers ios
+else
+  echo "✂️  Removing iOS target..."
+  delete_region ios
+  drop_module iosApp
+fi
+
+if [ "$INC_WEB" = "true" ]; then
+  echo "🧹 Cleaning Web region markers..."
+  clean_region_markers web
+else
+  echo "✂️  Removing Web target..."
+  delete_region web
+  drop_module webApp
+fi
+
+if [ "$INC_DSK" = "true" ]; then
+  echo "🧹 Cleaning Desktop region markers..."
+  clean_region_markers desktop
+else
+  echo "✂️  Removing Desktop target..."
+  delete_region desktop
+  drop_module desktopApp
+fi
 if [ "$step3_success" = true ]; then echo "STEP 3: Success"; else echo "STEP 3: Failed" >&2; fi
 
 # -----------------------------------------------------------------------------
