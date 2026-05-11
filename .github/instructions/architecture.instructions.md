@@ -6,13 +6,13 @@ applyTo: "sharedUI/**"
 
 ## Source-set topology (`sharedUI/src/`)
 
-| Source set | Responsibility |
-|------------|----------------|
-| `commonMain` | Domain models, use cases, repository **interfaces**, repository **implementations**, ViewModels, Compose UI, Koin module declarations. |
-| `androidMain` | `actual` declarations for Android-only APIs, Activity bindings, Android Koin module wiring. |
-| `iosMain` | `actual` declarations for iOS-only APIs, ViewController bindings (exposed to Swift). |
-| `jvmMain` | `actual` declarations for desktop JVM (Compose for Desktop). |
-| `webMain` | `actual` declarations shared by `jsMain` + `wasmJsMain`. |
+| Source set    | Responsibility                                                                                                                         |
+|---------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `commonMain`  | Domain models, use cases, repository **interfaces**, repository **implementations**, ViewModels, Compose UI, Koin module declarations. |
+| `androidMain` | `actual` declarations for Android-only APIs, Activity bindings, Android Koin module wiring.                                            |
+| `iosMain`     | `actual` declarations for iOS-only APIs, ViewController bindings (exposed to Swift).                                                   |
+| `jvmMain`     | `actual` declarations for desktop JVM (Compose for Desktop).                                                                           |
+| `webMain`     | `actual` declarations shared by `jsMain` + `wasmJsMain`.                                                                               |
 
 ## Clean Architecture layering (inside `commonMain/kotlin/{{PACKAGE_PATH}}/`)
 
