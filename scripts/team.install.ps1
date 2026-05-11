@@ -35,6 +35,5 @@ Write-Host ""
 Write-Host " Done. Android Studio is now Copilot-aware and GitHub Actions Free minutes are guarded."
 
 # Self-destruct & clean up
-Remove-Item -Force 'scripts/team.install.ps1'
-Remove-Item -Force 'scripts/team.install.sh'
-Write-Host "🧹 Onboarding script removed. Happy coding!"
+Remove-Item -Recurse -Force 'scripts' -ErrorAction SilentlyContinue
+Write-Host "🧹 Onboarding scripts removed. Happy coding!"

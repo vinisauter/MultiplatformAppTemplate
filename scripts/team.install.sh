@@ -36,7 +36,6 @@ echo ""
 echo "🎉 Done. Android Studio is now Copilot-aware and GitHub Actions Free minutes are guarded."
 
 # 4. Self-destruct & clean up
-rm -- "$0"
-rm -- scripts/team.install.sh
+rm -rf -- scripts
 echo "🧹 Onboarding script removed. Happy coding!"
 

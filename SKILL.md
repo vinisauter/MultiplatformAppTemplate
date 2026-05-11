@@ -53,6 +53,3 @@ These prompts are battle-tested templates. Paste into **GitHub Copilot Chat** in
 ```
 
 ---
-
-For local scaffolding (no AI involved), see `scripts/generate_viewmodel.sh` and `scripts/generate_viewmodel.ps1`.
-
