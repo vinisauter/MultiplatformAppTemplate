@@ -32,6 +32,9 @@ include(":sharedUI")
 // region android
 include(":androidApp")
 // endregion android
+// region ios
+include(":iosApp")
+// endregion ios
 // region desktop
 include(":desktopApp")
 // endregion desktop
