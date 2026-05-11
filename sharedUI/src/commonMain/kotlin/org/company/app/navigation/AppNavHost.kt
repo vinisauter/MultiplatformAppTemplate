@@ -1,10 +1,11 @@
 package org.company.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.entry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import org.company.app.feature.detail.presentation.DetailScreen
 import org.company.app.feature.hello.presentation.HelloScreen
@@ -21,12 +22,18 @@ import org.company.app.feature.hello.presentation.HelloScreen
  */
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
-    val backStack = rememberNavBackStack(AppRoute.Hello)
+    val backStack = remember { mutableStateListOf<NavKey>(AppRoute.Hello) }
 
     NavDisplay(
         backStack = backStack,
         modifier = modifier,
-        onBack = { count -> repeat(count) { backStack.removeLastOrNull() } },
+        onBack = {
+            if (backStack.size > 1) {
+                backStack.removeLastOrNull()
+            } else {
+                // Already at root; maybe exit the app or show a confirmation dialog?
+            }
+        },
         entryProvider = entryProvider {
             entry<AppRoute.Hello> {
                 HelloScreen(
