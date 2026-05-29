@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+#echo "pre-commit: running ktlintFormat..."
+#./gradlew ktlintFormat --quiet
+
+#!/bin/sh
+CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.kts\?$')
+if [ -n "$CHANGED_FILES" ]; then
+  echo "🔍 Found changed Kotlin files:"
+  echo "$CHANGED_FILES"
+  echo "🛠  Running ktlintFormat..."
+  echo "$CHANGED_FILES" | xargs ./gradlew ktlintFormat -Pincludes=
+  echo "➕ Adding changes to commit..."
+  echo "$CHANGED_FILES" | xargs git add
+  echo "🔎 Running ktlintCheck..."
+  ./gradlew ktlintCheck
+  if [ $? -ne 0 ]; then
+    echo "❌ Ktlint check failed! Please fix the errors and try again."
+    exit 1
+  fi
+else
+  echo "ℹ️ No changed Kotlin files to check."
+fi
+exit 0

@@ -33,7 +33,7 @@ You have **two equivalent ways** to initialize a new project from this template 
 
 ### Option B — Local script (no GitHub Actions minutes consumed)
 
-If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and **automatically chains into `team.install`** at the end.
+If Actions are disabled on your fork, or you'd rather initialize offline, run the **same** script directly after cloning. It performs the rewrite + prune steps and then configures Git hooks through the Gradle `installGitHooks` task.
 
 The block below clones the template, detaches its history, points the remote at *your* repository, runs the init script, and pushes the first commit. Replace `my-app`, `MyApp`, `com.myapp`, and the remote URL with your own values. The `INCLUDE_*` flags are toggled to whatever you want to keep.
 
@@ -49,19 +49,19 @@ cd my-app
 # 2. New git repo — set up (continues at step 5 with the first commit).
 rm -rf .git && git init -b main && git remote add origin git@github.com:<you>/<your-new-repo>.git
 
-# 3. Make the scripts executable (Git on macOS/Linux preserves the bit, but a fresh
-#    download via ZIP/Windows clone may strip it).
-chmod +x scripts/init.sh scripts/team.install.sh scripts/hooks/*.sh
+# 3. Make scripts + shared hooks executable (Git on macOS/Linux preserves the bit,
+#    but a fresh download via ZIP/Windows clone may strip it).
+chmod +x ./gradlew scripts/init.sh .githooks/*
 
 # 4. Run init (validates inputs, rewrites placeholders, prunes platforms,
-#    writes .template.config, then chains into scripts/team.install.sh).
+#    writes .template.config, then runs ./gradlew installGitHooks).
 bash scripts/init.sh \
   --project-name "MyApp" \
   --package-name "com.myapp" \
   --android true --ios true --web true --desktop true
 
 # 5. New git repo — first commit + push (continues from step 2).
-chmod +x ./gradlew && git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
+git add -A && git commit -m "chore: initialize MyApp from MultiplatformAppTemplate" && git push -u origin main
 
 # 6. Open in Android Studio (optional).
 open -a "Android Studio" .
@@ -78,7 +78,7 @@ Set-Location my-app
 Remove-Item -Recurse -Force .git; git init -b main; git remote add origin git@github.com:<you>/<your-new-repo>.git
 
 # 3. Run init (validates inputs, rewrites placeholders, prunes platforms,
-#    writes .template.config, then chains into scripts\team.install.ps1).
+#    writes .template.config, then runs .\gradlew.bat installGitHooks).
 powershell -File scripts/init.ps1 `
   -ProjectName "MyApp" `
   -PackageName "com.myapp" `
@@ -98,10 +98,9 @@ Start-Process "studio64.exe" -ArgumentList (Get-Location).Path
 
 After cloning the initialized repo:
 
-- **macOS / Linux:** `bash scripts/team.install.sh`
-- **Windows (Windows PowerShell 5.1 or PowerShell 7+):** `powershell -File scripts/team.install.ps1`
+- **All platforms:** run `./gradlew installGitHooks` once.
 
-This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktlint + ArchUnit) and `pre-push` (`check compileCommonMainKotlinMetadata`) Git hooks, and validates JDK 17+ (and `kdoctor` on macOS for iOS work).
+This sets `git config core.hooksPath .githooks`, enabling tracked `pre-commit` (ktlint format) and `pre-push` (`check compileCommonMainKotlinMetadata`) hooks for every contributor.
 
 ## 📁 Repository layout
 
@@ -120,13 +119,11 @@ This verifies the Copilot instructions in `.github/`, installs `pre-commit` (ktl
     init.yml                        Template initialization (self-destructs)
     kmp-ci.yml                      Optimized CI (Linux fast path + gated iOS)
 scripts/
-  init.sh / .ps1                    Local alternative to init.yml (chains into team.install)
+  init.sh / .ps1                    Local alternative to init.yml (runs installGitHooks)
   generate_viewmodel.sh / .ps1      Knowledge layer scaffolders
-  team.install.sh / .ps1            Distribution layer (onboarding)
-  hooks/                            Protection layer
-    SessionStart.sh / .ps1
-    PreToolUse.sh / .ps1            Installed as pre-commit
-    PostToolUse.sh / .ps1           Installed as pre-push
+.githooks/                          Protection layer (tracked Git hooks)
+  pre-commit
+  pre-push
 sharedUI/                           commonMain ViewModels, repos, UI
 androidApp/  iosApp/  desktopApp/  webApp/   Platform entry points
 manifest.json                       Distribution manifest
@@ -141,9 +138,9 @@ context.md                          Deep technical context
 |------------------|-------------------------------------------------------------|
 | **Memory**       | `.github/copilot-instructions.md`, `.github/instructions/*` |
 | **Knowledge**    | `SKILL.md`, `context.md`, `scripts/generate_*.{sh,ps1}`     |
-| **Protection**   | `scripts/hooks/*.{sh,ps1}`                                  |
+| **Protection**   | `.githooks/*`                                               |
 | **Delegation**   | `.github/personas/*.md`                                     |
-| **Distribution** | `manifest.json`, `scripts/team.install.{sh,ps1}`            |
+| **Distribution** | `manifest.json`, `./gradlew installGitHooks`                |
 
 ## 💸 GitHub Actions Free-tier strategy
 

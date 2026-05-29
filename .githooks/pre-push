@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "pre-push: running check + common metadata compile..."
+./gradlew check compileCommonMainKotlinMetadata --parallel
+

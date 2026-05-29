@@ -1,7 +1,7 @@
 # scripts/init.ps1
 # Local Windows alternative to the `Initialize KMP Project Template` GitHub Actions workflow.
 # Rewrites placeholders, prunes unselected platforms, writes .template.config,
-# self-destructs init.yml, then runs scripts/team.install.ps1.
+# self-destructs init.yml, then runs .\gradlew.bat installGitHooks.
 #
 # Usage (interactive):
 #   pwsh scripts/init.ps1
@@ -332,20 +332,19 @@ try {
 $selfPath = $MyInvocation.MyCommand.Path
 if ($step5Success) { Write-Host 'STEP 5: Success' -ForegroundColor Green } else { Write-Error 'STEP 5: Failed' }
 
-# ---- 6. Run team.install ----
-Write-Host 'STEP 6: Running team.install...'
+# ---- 6. Configure shared Git hooks via Gradle ----
+Write-Host 'STEP 6: Running .\\gradlew.bat installGitHooks...'
 $step6Success = $true
 if ($SkipInstall) {
-    Write-Host '>> Skipping team.install (-SkipInstall).'
+    Write-Host '>> Skipping installGitHooks (-SkipInstall).'
 } else {
     Write-Host ''
-    Write-Host '>> Running scripts/team.install.ps1...'
+    Write-Host '>> Running .\\gradlew.bat installGitHooks...'
     try {
-        $psHost = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
-        & $psHost -NoProfile -File 'scripts/team.install.ps1'
+        & ./gradlew.bat installGitHooks
     } catch {
         $step6Success = $false
-        Write-Error '[STEP 6] Failed to run team.install.ps1'
+        Write-Error '[STEP 6] Failed to run .\gradlew.bat installGitHooks'
     }
 }
 if ($step6Success) { Write-Host 'STEP 6: Success' -ForegroundColor Green } else { Write-Error 'STEP 6: Failed' }

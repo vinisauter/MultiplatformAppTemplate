@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.room)
     alias(libs.plugins.ksp)
     alias(libs.plugins.apollo)
     alias(libs.plugins.buildConfig)
@@ -27,6 +26,7 @@ kotlin {
     // endregion desktop
     // region web
     js { browser() }
+    @Suppress("OPT_IN_USAGE")
     wasmJs { browser() }
     // endregion web
     // region ios
@@ -59,7 +59,6 @@ kotlin {
             implementation(libs.coil.network.ktor)
             implementation(libs.multiplatformSettings)
             implementation(libs.kotlinx.datetime)
-            implementation(libs.room.runtime)
             implementation(libs.apollo.runtime)
             implementation(libs.kstore)
             implementation(libs.materialKolor)
@@ -142,29 +141,10 @@ compose.resources {
     packageOfResClass = "org.company.app.resources"
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
-
 apollo {
     service("api") {
         // GraphQL configuration here.
         // https://www.apollographql.com/docs/kotlin/advanced/plugin-configuration/
         packageName.set("{{PACKAGE_NAME}}.graphql")
-    }
-}
-
-dependencies {
-    with(libs.room.compiler) {
-        // region android
-        add("kspAndroid", this)
-        // endregion android
-        // region desktop
-        add("kspJvm", this)
-        // endregion desktop
-        // region ios
-        add("kspIosArm64", this)
-        add("kspIosSimulatorArm64", this)
-        // endregion ios
     }
 }

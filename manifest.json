@@ -4,7 +4,7 @@
   "ai_assistant": "GitHub Copilot",
   "instructions_path": ".github/instructions",
   "personas_path": ".github/personas",
-  "hooks_path": "scripts/hooks",
+  "hooks_path": ".githooks",
   "config_file": ".template.config",
   "tech_stack": [
     "kotlin-multiplatform",

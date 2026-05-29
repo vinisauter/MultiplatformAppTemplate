@@ -2,7 +2,7 @@
 # scripts/init.sh
 # Local alternative to the `Initialize KMP Project Template` GitHub Actions workflow.
 # Rewrites placeholders, prunes unselected platforms, writes .template.config,
-# self-destructs init.yml, then runs scripts/team.install.sh.
+# self-destructs init.yml, then runs ./gradlew installGitHooks.
 #
 # Usage (interactive):   bash scripts/init.sh
 # Usage (non-interactive):
@@ -299,15 +299,15 @@ SCRIPT_PATH="$0"
 if [ "$step5_success" = true ]; then echo "STEP 5: Success"; else echo "STEP 5: Failed" >&2; fi
 
 # -----------------------------------------------------------------------------
-# 6. Run team.install (hooks + environment validation).
+# 6. Configure shared Git hooks via Gradle.
 # -----------------------------------------------------------------------------
-echo "▶️  Running scripts/team.install.sh..."
+echo "▶️  Running ./gradlew installGitHooks..."
 step6_success=true
 if [ "$SKIP_INSTALL" = "true" ]; then
-  echo "⏭  Skipping team.install (--skip-install)."
+  echo "⏭  Skipping installGitHooks (--skip-install)."
 else
-  if ! bash scripts/team.install.sh; then
-    echo "[STEP 6] Failed to run scripts/team.install.sh" >&2
+  if ! ./gradlew installGitHooks; then
+    echo "[STEP 6] Failed to run ./gradlew installGitHooks" >&2
     step6_success=false
   fi
 fi
