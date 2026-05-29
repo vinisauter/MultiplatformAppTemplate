@@ -31,6 +31,14 @@ applyTo: "sharedUI/**"
 - `runBlocking` is forbidden everywhere except test sources.
 - Direct Android (`android.*`) or Apple (`platform.*`) imports are forbidden in `commonMain`.
 
+### No utility-module antipattern
+
+- ❌ **Never** create catch-all files or objects named `Utils`, `Helpers`, `Common`, `Util`, `Helper`, or any synonym — in any layer or source set.
+- Every helper/extension must live in a file whose name communicates its **domain** (e.g., `DateFormatting.kt`, `AuthTokenParser.kt`, `FlowExtensions.kt`).
+- If you cannot yet determine the right domain, place it in a file named `UnstableTemporaryUtils.kt` inside the relevant layer package. This name is intentionally awkward to discourage overuse and make it easy to audit with `git grep`. It is a **last resort**, not a default.
+- `UnstableTemporaryUtils.kt` MUST NOT grow beyond **5 declarations**. Any addition beyond that threshold requires refactoring existing entries into properly named files first.
+- Prefer extension functions scoped to the exact type they operate on over free-standing top-level helpers whenever possible.
+
 ## MVVM contract
 
 - ViewModels extend `androidx.lifecycle.ViewModel` and launch coroutines exclusively via `viewModelScope`.

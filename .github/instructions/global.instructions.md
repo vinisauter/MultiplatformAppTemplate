@@ -32,3 +32,11 @@ applyTo: "**/*.kt"
 - Prefer `data class` + `sealed interface` over enums for state modeling.
 - Composable functions are PascalCase and stateless when possible (state hoisted to the ViewModel).
 
+## Utility module antipattern (forbidden)
+
+- ❌ Do **not** create files or Kotlin objects named `Utils`, `Util`, `Helpers`, `Helper`, `Common`, or any equivalent catch-all name.
+- Name every file after its **specific domain**: `DateFormatting.kt`, `AuthTokenParser.kt`, `StringExtensions.kt`, etc. The name must tell a reader what belongs there and, equally importantly, what does **not**.
+- When the right name is unclear (e.g., early-stage feature exploration), use a file explicitly named `UnstableTemporaryUtils.kt` as a **temporary** holding area. Its unwieldy name is intentional — it signals instability and applies pressure to refactor.
+- Before adding a new declaration to `UnstableTemporaryUtils.kt`, ask: can I find a proper domain name right now? If yes, create the correctly-named file instead.
+- CI must reject any `UnstableTemporaryUtils.kt` file that exceeds **5 top-level declarations**.
+

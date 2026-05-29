@@ -30,6 +30,7 @@ You **MUST** use only the libraries below. They are already declared in `gradle/
 - ❌ `kotlinx-coroutines-android` outside `androidMain`.
 - ❌ Direct `java.net.HttpURLConnection`, `URLSession`, or `fetch` — always go through Ktor.
 - ❌ Adding a `:shared` or `:composeApp` module — this template is **multi-module** and `commonMain` lives inside `:sharedUI`.
+- ❌ Files or objects named `Utils`, `Util`, `Helpers`, `Helper`, `Common`, or any catch-all synonym — see the **Utility module antipattern** rule in `global.instructions.md` and `architecture.instructions.md`.
 
 ## Koin module convention
 
