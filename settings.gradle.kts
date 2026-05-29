@@ -3,7 +3,7 @@ rootProject.name = "{{PROJECT_NAME}}"
 pluginManagement {
     repositories {
         google {
-            content { 
+            content {
               	includeGroupByRegex("com\\.android.*")
               	includeGroupByRegex("com\\.google.*")
               	includeGroupByRegex("androidx.*")
@@ -14,11 +14,14 @@ pluginManagement {
         mavenCentral()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 dependencyResolutionManagement {
     repositories {
         google {
-            content { 
+            content {
               	includeGroupByRegex("com\\.android.*")
               	includeGroupByRegex("com\\.google.*")
               	includeGroupByRegex("androidx.*")
