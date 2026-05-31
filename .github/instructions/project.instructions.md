@@ -23,6 +23,8 @@ You **MUST** use only the libraries below. They are already declared in `gradle/
 | Logging               | Kermit                                       | `kermit`                                                                                                |
 | Date/Time             | kotlinx-datetime                             | `kotlinx-datetime`                                                                                      |
 | BuildConfig           | `com.github.gmazzo.buildconfig` plugin       | `buildConfig`                                                                                           |
+| Resources             | Compose Multiplatform Resources              | `compose-resources` (built-in with `compose.multiplatform` plugin)                                      |
+| Math Expression       | Keval                                        | `keval`                                                                                                 |
 
 ## Forbidden patterns
 
@@ -31,6 +33,16 @@ You **MUST** use only the libraries below. They are already declared in `gradle/
 - ❌ Direct `java.net.HttpURLConnection`, `URLSession`, or `fetch` — always go through Ktor.
 - ❌ Adding a `:shared` or `:composeApp` module — this template is **multi-module** and `commonMain` lives inside `:sharedUI`.
 - ❌ Files or objects named `Utils`, `Util`, `Helpers`, `Helper`, `Common`, or any catch-all synonym — see the **Utility module antipattern** rule in `global.instructions.md` and `architecture.instructions.md`.
+- ❌ `moko-resources` or any third-party resource library — use **Compose Multiplatform Resources** (`compose.resources`) which is already configured.
+
+## String resources convention
+
+- All user-facing strings **MUST** be defined in `sharedUI/src/commonMain/composeResources/values/strings.xml` (English default).
+- Localized translations go in qualifier directories: `values-pt-rBR/strings.xml` (Portuguese Brazil), `values-es/strings.xml` (Spanish), etc.
+- In Composable functions, use `stringResource(Res.string.key_name)` instead of hardcoded text.
+- String keys follow the pattern `<screen>_<description>` (e.g., `dashboard_title`, `builder_save`, `strategies_test_btn`).
+- Parameterized strings use Android-style `%1$s`, `%1$d` format placeholders.
+- Currently supported locales: **en** (default), **pt-rBR** (Portuguese — Brazil).
 
 ## Koin module convention
 

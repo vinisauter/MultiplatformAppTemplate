@@ -18,10 +18,69 @@ applyTo: "sharedUI/**"
 
 ```
 {{PACKAGE_PATH}}/
-├── domain/        # Pure Kotlin: data classes, sealed interfaces, repository INTERFACES, use cases.
-├── data/          # Repository IMPLEMENTATIONS consuming Ktor / Apollo / Room / Multiplatform Settings / KStore.
-└── presentation/  # ViewModels (AndroidX) + Compose screens + Nav3 destinations.
+├── feature/
+│   ├── <featureName>/
+│   │   ├── domain/        # Pure Kotlin: models, repository INTERFACES, use cases.
+│   │   ├── data/          # Repository IMPLEMENTATIONS, API clients, local sources.
+│   │   └── presentation/  # ViewModels (AndroidX) + Compose screens + UiState/UiEvent.
+│   └── common/            # Shared domain/data logic consumed by multiple features.
+│   │   ├── domain/        # Pure shared Kotlin: models, repository INTERFACES, use cases.
+│   │   └── data/          # Repository shared IMPLEMENTATIONS, API clients, local sources.
+├── navigation/            # App-wide routes and the single NavHost.
+├── di/                    # App-level Koin modules.
+└── theme/                 # Global Compose UI styling.
 ```
+
+## Folder definitions (required)
+
+- Use the `org.company.app` package style and keep feature-specific code under `feature/<featureName>/`. App-wide configurations go in root folders like `navigation/`, `di/`, or `theme/`.
+- `feature/<featureName>/domain/model/` — domain entities and value objects only.
+- `feature/<featureName>/domain/repository/` — repository interfaces only (no implementation details).
+- `feature/<featureName>/domain/usecase/` — one use case per file, named as `VerbNounUseCase`.
+- `feature/<featureName>/data/repository/` — repository implementations that satisfy domain repository contracts.
+- `feature/<featureName>/data/remote/` — API clients, DTOs, and network mappers.
+- `feature/<featureName>/data/local/` — Room, KStore, and Settings sources plus persistence mappers.
+- `feature/<featureName>/presentation/` — feature-scoped `UiState`, `UiEvent`, `ViewModel`, and screen files.
+- `navigation/` — app-wide routes and the single nav host (lives at `{{PACKAGE_PATH}}/navigation/`, outside features).
+- If two or more features share the same domain model/use case/repository contract, extract it to `feature/common/` (`feature/common/domain/...`, `feature/common/data/...`) and consume it from feature-specific folders.
+- Cross-layer imports are forbidden except through the declared dependency direction (`presentation -> domain`, `data -> domain`).
+
+## Class Responsibilities
+
+To ensure strict separation of concerns, each layer and class type must adhere to explicit rules for what it **can** and **cannot** contain:
+
+### Domain Layer
+**Architectural Responsibility:** Encapsulates the core business rules and enterprise logic. It is completely isolated and must not depend on any outer layers (Data, Presentation, or platform frameworks).
+- **Models (`domain/model/`)**
+  - **Can:** Be pure Kotlin `data class`, `value class`, or `sealed interface` representing business concepts.
+  - **Cannot:** Contain framework annotations (e.g., `@Serializable`, `@Entity`), platform imports, or functions that perform I/O.
+- **Repository Interfaces (`domain/repository/`)**
+  - **Can:** Define `suspend` functions and `Flow`s returning pure Domain Models.
+  - **Cannot:** Expose implementation details like `HttpResponse`, Room queries, or specific exception types from data sources.
+- **Use Cases (`domain/usecase/`)**
+  - **Can:** Orchestrate one specific business rule combining multiple repositories. Must be stateless (`operator fun invoke`).
+  - **Cannot:** Hold mutable state, use `runBlocking`, or depend on any UI/Data-layer class.
+
+### Data Layer
+**Architectural Responsibility:** Manages data retrieval, storage, and API communications. It implements the interfaces defined by the Domain layer and translates external data formats (DTOs, DB Entities) into pure Domain Models.
+- **Repository Implementations (`data/repository/`)**
+  - **Can:** Fetch from `remote/` or `local/` sources and map DTOs/Entities to Domain Models. Cache data.
+  - **Cannot:** Leak DTOs/Entities to the domain layer. Hold UI-specific state.
+- **Data Sources & DTOs (`data/remote/`, `data/local/`)**
+  - **Can:** Use `@Serializable` for network payloads, `@Entity` for Room tables, and specify data mapping logic.
+  - **Cannot:** Be used directly by the Presentation layer or Use Cases.
+
+### Presentation Layer
+**Architectural Responsibility:** Handles UI rendering, user interactions, and state management. It observes data from the Domain layer and translates user actions into Domain Use Case invocations.
+- **UiState & UiEvent (`presentation/`)**
+  - **Can:** `UiState` must be a 100% immutable `data class`. `UiEvent` must be a `sealed interface` of user actions.
+  - **Cannot:** Contain business logic, mutable `var` properties, or framework/platform instances.
+- **ViewModels (`presentation/`)**
+  - **Can:** Map Domain Models to `UiState`, process `UiEvent`s, and manage async work exclusively via `viewModelScope`.
+  - **Cannot:** Contain direct Android/iOS references (e.g., Context, UIViews), or access repositories directly if a Use Case exists.
+- **Compose Screens (`presentation/`)**
+  - **Can:** Map `UiState` into visual components and emit UI events/callbacks back to the ViewModel.
+  - **Cannot:** Inject Repositories/Use Cases directly, or perform business/validation logic inside the Composable.
 
 ### Hard dependency rules (enforced by ArchUnit in `:sharedUI`'s commonTest)
 
@@ -33,7 +92,7 @@ applyTo: "sharedUI/**"
 
 ### No utility-module antipattern
 
-- ❌ **Never** create catch-all files or objects named `Utils`, `Helpers`, `Common`, `Util`, `Helper`, or any synonym — in any layer or source set.
+- ❌ **Never** create catch-all files or objects named `Utils`, `Helpers`, `Common`, `Util`, `Helper`, or any synonym — in any layer or source set. *(Note: the directory `feature/common/` is allowed for shared feature code, but a file named `Common.kt` is forbidden).*
 - Every helper/extension must live in a file whose name communicates its **domain** (e.g., `DateFormatting.kt`, `AuthTokenParser.kt`, `FlowExtensions.kt`).
 - If you cannot yet determine the right domain, place it in a file named `UnstableTemporaryUtils.kt` inside the relevant layer package. This name is intentionally awkward to discourage overuse and make it easy to audit with `git grep`. It is a **last resort**, not a default.
 - `UnstableTemporaryUtils.kt` MUST NOT grow beyond **5 declarations**. Any addition beyond that threshold requires refactoring existing entries into properly named files first.
@@ -52,4 +111,5 @@ applyTo: "sharedUI/**"
 - Screens receive navigation lambdas (`onNavigateToY`, `onBack`) as **parameters**; they MUST NOT import the backstack directly.
 - ViewModels with route arguments are registered with `viewModel { (arg: T) -> XxxViewModel(arg, get()) }` and resolved at the call site via `koinViewModel { parametersOf(key.arg) }` so each backstack entry owns a fresh instance.
 - Back navigation: `onBack = { count -> repeat(count) { backStack.removeLastOrNull() } }` on `NavDisplay`.
+
 
