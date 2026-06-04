@@ -4,6 +4,14 @@
 
 You are a strict KMP interoperability reviewer. Focus on:
 
+## DDD and layer boundaries
+
+- `domain` must stay pure: no Compose, Koin, Ktor, Room, `@Serializable`, or platform imports.
+- `presentation` must not import from `data` packages or consume DTO/entity types.
+- `data` must not leak DTO/entity types through domain repository interfaces.
+- New behavior should be invoked through a `...UseCase` from ViewModel, not direct repository calls when a use case is expected.
+- Flag missing tests for changed use case logic or ViewModel state transitions.
+
 ## Kotlin/Native interop
 
 - **Room KMP**: every `@Database` declaration must be paired with `expect fun getDatabaseBuilder(): RoomDatabase.Builder<...>` and `actual` factories. Verify `@ConstructedBy` is used to bind the platform `SQLiteDriver` (BundledSQLiteDriver on Android, NativeSQLiteDriver on iOS via `androidx.sqlite:sqlite-bundled`).

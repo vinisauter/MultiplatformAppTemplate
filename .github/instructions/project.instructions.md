@@ -6,6 +6,14 @@ applyTo: "**"
 
 You **MUST** use only the libraries below. They are already declared in `gradle/libs.versions.toml`. Never introduce a new dependency without updating the version catalog through the `explorer.md` persona workflow.
 
+## Layer usage constraints (required)
+
+- `domain`: Kotlin stdlib + coroutines primitives only; no networking, persistence, DI, Compose, or platform-specific APIs.
+- `data`: may use Ktor, Apollo, Room, Settings, KStore, kotlinx-serialization, kotlinx-datetime, Kermit.
+- `presentation`: may use Compose Multiplatform, Navigation 3, Lifecycle ViewModel/runtime, Coil, MaterialKolor, Kermit.
+- `di`: may use Koin to bind `domain` contracts to `data` implementations and expose `presentation` ViewModels.
+- Platform source sets (`androidMain`/`iosMain`/`jvmMain`/`webMain`): only platform adapters, `actual` implementations, and app entry wiring.
+
 | Concern               | Library                                      | Catalog alias                                                                                           |
 |-----------------------|----------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | Dependency Injection  | Koin                                         | `koin-core`, `koin-compose`                                                                             |
@@ -34,6 +42,7 @@ You **MUST** use only the libraries below. They are already declared in `gradle/
 - ❌ Adding a `:shared` or `:composeApp` module — this template is **multi-module** and `commonMain` lives inside `:sharedUI`.
 - ❌ Files or objects named `Utils`, `Util`, `Helpers`, `Helper`, `Common`, or any catch-all synonym — see the **Utility module antipattern** rule in `global.instructions.md` and `architecture.instructions.md`.
 - ❌ `moko-resources` or any third-party resource library — use **Compose Multiplatform Resources** (`compose.resources`) which is already configured.
+- ❌ Adding any architecture framework that overlaps with existing MVVM/Clean Architecture responsibilities (for example Redux/MVI frameworks) without explicit architecture decision and version-catalog update.
 
 ## String resources convention
 

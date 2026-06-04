@@ -51,6 +51,36 @@ jobs:
         with:
           gradle-version: wrapper
 
+      - name: Architecture guardrails (fast fail)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Forbid catch-all utility file names in Kotlin sources.
+          if find sharedUI/src -type f \( -name "*Utils.kt" -o -name "*Util.kt" -o -name "*Helpers.kt" -o -name "*Helper.kt" -o -name "Common.kt" \) | grep -q .; then
+            echo "::error::Forbidden utility file naming detected (Utils/Util/Helpers/Helper/Common)."
+            find sharedUI/src -type f \( -name "*Utils.kt" -o -name "*Util.kt" -o -name "*Helpers.kt" -o -name "*Helper.kt" -o -name "Common.kt" \)
+            exit 1
+          fi
+
+
+          # Forbid runBlocking outside test sources.
+          if grep -R --line-number --include='*.kt' 'runBlocking\s*(' sharedUI/src \
+            | grep -vE '/(commonTest|androidTest|iosTest|jvmTest|jsTest|wasmJsTest|webTest|test)/' \
+            | grep -q .; then
+            echo "::error::runBlocking is forbidden outside test sources."
+            grep -R --line-number --include='*.kt' 'runBlocking\s*(' sharedUI/src \
+              | grep -vE '/(commonTest|androidTest|iosTest|jvmTest|jsTest|wasmJsTest|webTest|test)/'
+            exit 1
+          fi
+
+          # Forbid platform imports in commonMain.
+          if grep -R --line-number --include='*.kt' -E '^import (android\.|platform\.)' sharedUI/src/commonMain/kotlin | grep -q .; then
+            echo "::error::Platform imports are forbidden in commonMain."
+            grep -R --line-number --include='*.kt' -E '^import (android\.|platform\.)' sharedUI/src/commonMain/kotlin
+            exit 1
+          fi
+
       - name: Ktlint + JVM tests + common metadata
         run: ./gradlew ktlintCheck check compileCommonMainKotlinMetadata --parallel
 

@@ -4,6 +4,11 @@ applyTo: "**/*.kt"
 
 # Global KMP Development Guidelines
 
+## Scope and intent
+
+- These rules apply to all Kotlin sources matched by `applyTo` and are complementary to architectural layering rules.
+- If guidance conflicts, follow `.github/instructions/architecture.instructions.md` first.
+
 ## Concurrency
 
 - Use **Kotlinx Coroutines** exclusively. No threads, no `Thread.sleep`, no `runBlocking` outside tests.
@@ -32,11 +37,26 @@ applyTo: "**/*.kt"
 - Prefer `data class` + `sealed interface` over enums for state modeling.
 - Composable functions are PascalCase and stateless when possible (state hoisted to the ViewModel).
 
+## Error handling and result contracts
+
+- Model business failures with domain-specific sealed interfaces/classes in `domain`, not with transport-specific exceptions.
+- Convert network/database exceptions in `data` into domain-level error contracts before returning to `domain`/`presentation`.
+- ViewModels should map domain errors into user-facing `UiState` fields; they must not expose raw exceptions to screens.
+
+## Layer-safe naming conventions
+
+- Use names that reveal layer role: `...UseCase`, `...Repository`, `...RepositoryImpl`, `...UiState`, `...UiEvent`, `...ViewModel`, `...Mappers`.
+- Keep one primary declaration per file when practical, especially for use cases and ViewModels, to simplify reviews and architecture checks.
+
+## Testing baseline for behavior changes
+
+- Any business-rule change requires `commonTest` coverage for the affected use case or repository behavior.
+- Any state-transition change in a ViewModel requires `commonTest` coverage validating initial state and at least one event-driven transition.
+
 ## Utility module antipattern (forbidden)
 
 - ❌ Do **not** create files or Kotlin objects named `Utils`, `Util`, `Helpers`, `Helper`, `Common`, or any equivalent catch-all name.
 - Name every file after its **specific domain**: `DateFormatting.kt`, `AuthTokenParser.kt`, `StringExtensions.kt`, etc. The name must tell a reader what belongs there and, equally importantly, what does **not**.
-- When the right name is unclear (e.g., early-stage feature exploration), use a file explicitly named `UnstableTemporaryUtils.kt` as a **temporary** holding area. Its unwieldy name is intentional — it signals instability and applies pressure to refactor.
-- Before adding a new declaration to `UnstableTemporaryUtils.kt`, ask: can I find a proper domain name right now? If yes, create the correctly-named file instead.
-- CI must reject any `UnstableTemporaryUtils.kt` file that exceeds **5 top-level declarations**.
+- ❌ Catch-all utility files are forbidden.
+- If the right domain name is unclear, pause and define the bounded context first; then create a properly named file.
 

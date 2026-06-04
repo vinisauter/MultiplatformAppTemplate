@@ -4,6 +4,12 @@ applyTo: "sharedUI/**"
 
 # Architectural Rules — KMP + MVVM + Clean Architecture
 
+## Rule precedence and conflict resolution
+
+- If two instructions conflict, resolve in this order: `architecture.instructions.md` -> `global.instructions.md` -> `project.instructions.md`.
+- When uncertain where code belongs, prefer stricter placement: `domain` before `data`, `domain` before `presentation`, and `commonMain` before platform source sets.
+- Every pull request that adds or changes behavior must explain, in its description, which layer owns the behavior and why.
+
 ## Source-set topology (`sharedUI/src/`)
 
 | Source set    | Responsibility                                                                                                                         |
@@ -44,6 +50,34 @@ applyTo: "sharedUI/**"
 - `navigation/` — app-wide routes and the single nav host (lives at `{{PACKAGE_PATH}}/navigation/`, outside features).
 - If two or more features share the same domain model/use case/repository contract, extract it to `feature/common/` (`feature/common/domain/...`, `feature/common/data/...`) and consume it from feature-specific folders.
 - Cross-layer imports are forbidden except through the declared dependency direction (`presentation -> domain`, `data -> domain`).
+- `domain` must remain framework-agnostic and may only depend on Kotlin stdlib, coroutines primitives, and other `domain` packages.
+
+## Domain-Driven Design (DDD) modeling contract
+
+- **Bounded context = feature folder**: each `feature/<featureName>/` is a bounded context and owns its ubiquitous language, models, and use cases.
+- **Shared kernel only when necessary**: move code to `feature/common/` only after at least two feature contexts actively reuse it.
+- **Domain models are the source of truth**: API DTOs, DB entities, and UI models must map from/to domain models; they never replace them.
+- **Entity identity rule**: if lifecycle identity matters, model as an entity (stable id + behavior invariants); otherwise use value objects.
+- **Use case granularity**: each use case represents one business capability and one reason to change. Avoid "god" use cases.
+- **Domain errors**: expose business failures as domain-specific sealed hierarchies (for example, `CreateOrderError`) instead of transport/driver exceptions.
+
+## Mapper and boundary rules (required)
+
+- Place mappers close to boundary they cross:
+  - `data/remote/` for DTO <-> domain transformations.
+  - `data/local/` for Entity <-> domain transformations.
+  - `presentation/` for domain <-> UI model/state transformations.
+- Never expose DTOs/Entities outside `data` packages.
+- Never expose Compose/UI models outside `presentation` packages.
+- Use extension functions when mapping is straightforward; use dedicated mapper classes only when dependencies are required.
+
+## Mapping decision matrix (domain as SSOT)
+
+- Treat domain models as the only business source of truth; boundary models are adapters, never owners of business rules.
+- Mapping is **mandatory** when crossing boundaries with different concerns (`remote DTO`, `local entity`, `UiState`/`UiModel`).
+- Mapping may be **minimal** (single extension function per direction) when structures are currently identical, but boundary ownership must still remain explicit.
+- Do not introduce generic mapping frameworks or reflection-based mappers; prefer explicit, local, testable functions.
+- If a boundary starts identical and later diverges, evolve mapper functions in place instead of letting external models leak into domain.
 
 ## Class Responsibilities
 
@@ -90,12 +124,24 @@ To ensure strict separation of concerns, each layer and class type must adhere t
 - `runBlocking` is forbidden everywhere except test sources.
 - Direct Android (`android.*`) or Apple (`platform.*`) imports are forbidden in `commonMain`.
 
+## Feature minimum structure (must exist for new business capability)
+
+For each new business capability, add all of the following artifacts unless explicitly not applicable:
+
+- `domain/model/` model(s) representing the business concept.
+- `domain/repository/` interface(s) for required data access.
+- `domain/usecase/VerbNounUseCase.kt` entry point for the behavior.
+- `data/repository/` implementation(s) fulfilling repository contracts.
+- `presentation/` `UiState`, `UiEvent`, `ViewModel`, and screen/composable entry.
+- `commonTest/` tests for at least the use case and ViewModel behavior.
+
+If any item is skipped, document the reason in the PR description.
+
 ### No utility-module antipattern
 
 - ❌ **Never** create catch-all files or objects named `Utils`, `Helpers`, `Common`, `Util`, `Helper`, or any synonym — in any layer or source set. *(Note: the directory `feature/common/` is allowed for shared feature code, but a file named `Common.kt` is forbidden).*
 - Every helper/extension must live in a file whose name communicates its **domain** (e.g., `DateFormatting.kt`, `AuthTokenParser.kt`, `FlowExtensions.kt`).
-- If you cannot yet determine the right domain, place it in a file named `UnstableTemporaryUtils.kt` inside the relevant layer package. This name is intentionally awkward to discourage overuse and make it easy to audit with `git grep`. It is a **last resort**, not a default.
-- `UnstableTemporaryUtils.kt` MUST NOT grow beyond **5 declarations**. Any addition beyond that threshold requires refactoring existing entries into properly named files first.
+- ❌ Catch-all files are forbidden.
 - Prefer extension functions scoped to the exact type they operate on over free-standing top-level helpers whenever possible.
 
 ## MVVM contract
@@ -104,6 +150,13 @@ To ensure strict separation of concerns, each layer and class type must adhere t
 - Each ViewModel exposes an immutable `data class XxxUiState` via a `StateFlow<XxxUiState>` and accepts a `sealed interface XxxUiEvent` through a single `handleEvent(event)` entry point.
 - Navigation uses **AndroidX Navigation 3** (Compose Multiplatform). ViewModels are scoped to backstack entries.
 
+## Composition root and DI boundaries
+
+- DI wiring is allowed in `di/` and platform entry points only.
+- `presentation` depends on abstractions from `domain`; concrete implementations are provided by Koin modules.
+- Do not call `startKoin` from feature files; initialize once per platform app entry point.
+- Constructor injection is mandatory for ViewModels, use cases, and repositories.
+
 ## Navigation contract
 
 - All destinations live in `commonMain/kotlin/{{PACKAGE_PATH}}/navigation/AppRoute.kt` as `@Serializable` variants of a single `sealed interface AppRoute : NavKey`.
@@ -111,5 +164,12 @@ To ensure strict separation of concerns, each layer and class type must adhere t
 - Screens receive navigation lambdas (`onNavigateToY`, `onBack`) as **parameters**; they MUST NOT import the backstack directly.
 - ViewModels with route arguments are registered with `viewModel { (arg: T) -> XxxViewModel(arg, get()) }` and resolved at the call site via `koinViewModel { parametersOf(key.arg) }` so each backstack entry owns a fresh instance.
 - Back navigation: `onBack = { count -> repeat(count) { backStack.removeLastOrNull() } }` on `NavDisplay`.
+
+## Definition of done for architecture compliance
+
+- New/changed behavior keeps dependency direction valid (`presentation -> domain`, `data -> domain`, never inverse).
+- No platform imports, no `runBlocking`, and no direct data-source types leaking across boundaries.
+- PR includes tests for business logic changes in `commonTest`.
+- Naming follows domain language; no generic utility file names.
 
 

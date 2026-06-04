@@ -26,3 +26,13 @@ Personas in `.github/personas/` (`code-reviewer.md`, `test-runner.md`, `explorer
 
 Maximize reuse in `commonMain`. Use platform source sets (`androidMain`/`iosMain`/`jvmMain`/`webMain`) **only** for hardware integrations or platform entry points. Never duplicate domain or presentation logic across platforms.
 
+## Mandatory architecture checklist for every code change
+
+- Keep dependency flow unidirectional: `presentation -> domain`, `data -> domain`, and never the reverse.
+- Keep domain models pure and framework-free.
+- Route business behavior through explicit use cases.
+- Keep DTO/entity/UI mappings inside their boundary layers.
+- Add or update `commonTest` coverage for behavior changes.
+
+When a requested implementation is ambiguous, ask a short clarifying question before generating code that might violate these rules.
+
