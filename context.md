@@ -1,5 +1,7 @@
 # context.md — Deep Technical Context
 
+> **Mandatory Agent Instructions**: This project uses a strict set of architectural and coding standards. Always refer to [.github/copilot-instructions.md](.github/copilot-instructions.md) and the individual instruction files in [.github/instructions/](.github/instructions/) before making changes. Use task-specific personas from [.github/personas/](.github/personas/) when appropriate.
+
 ## Why AndroidX ViewModel + Navigation 3 in KMP
 
 Since 2024–2025, Google and JetBrains have officially shipped Kotlin Multiplatform builds of `androidx.lifecycle:lifecycle-viewmodel`, `lifecycle-runtime`, and `androidx.navigation3:navigation3-ui`. This collapses three previous ecosystems (MVIKotlin, Decompose, voyager) into a first-party stack.
