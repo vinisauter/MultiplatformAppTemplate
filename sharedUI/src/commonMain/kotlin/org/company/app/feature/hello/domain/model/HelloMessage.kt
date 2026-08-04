@@ -1,4 +1,4 @@
-package org.company.app.feature.hello.domain
+package org.company.app.feature.hello.domain.model
 
 /**
  * Pure domain model. No platform, framework, or serialization annotations allowed here.
@@ -6,4 +6,5 @@ package org.company.app.feature.hello.domain
 data class HelloMessage(
     val text: String,
 )
+
 
