@@ -1,5 +1,7 @@
 package org.company.app.feature.detail.domain
 
+import org.company.app.feature.detail.domain.model.DetailItem
+
 class GetDetailUseCase(
     private val repository: DetailRepository,
 ) {

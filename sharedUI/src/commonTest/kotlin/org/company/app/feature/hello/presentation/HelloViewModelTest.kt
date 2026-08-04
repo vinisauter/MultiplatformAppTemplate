@@ -11,9 +11,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.company.app.feature.hello.domain.GetHelloMessageUseCase
-import org.company.app.feature.hello.domain.HelloMessage
 import org.company.app.feature.hello.domain.HelloRepository
 import org.company.app.feature.hello.domain.RefreshHelloUseCase
+import org.company.app.feature.hello.domain.model.HelloMessage
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

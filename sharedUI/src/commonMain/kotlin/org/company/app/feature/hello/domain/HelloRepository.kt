@@ -1,9 +1,10 @@
 package org.company.app.feature.hello.domain
 
 import kotlinx.coroutines.flow.Flow
+import org.company.app.feature.hello.domain.model.HelloMessage
 
 /**
- * Repository contract. Lives in [domain]; implemented in [data].
+ * Repository contract. Lives in `domain`; implemented in `data`.
  * The presentation layer must depend on this interface, never on a concrete implementation.
  */
 interface HelloRepository {

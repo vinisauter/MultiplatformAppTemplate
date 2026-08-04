@@ -1,6 +1,7 @@
 package org.company.app.feature.hello.domain
 
 import kotlinx.coroutines.flow.Flow
+import org.company.app.feature.hello.domain.model.HelloMessage
 
 /**
  * Use case (interactor). Pure orchestration over the domain repository.

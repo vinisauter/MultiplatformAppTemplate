@@ -1,10 +1,10 @@
 package org.company.app.feature.detail.data
 
-import org.company.app.feature.detail.domain.DetailItem
 import org.company.app.feature.detail.domain.DetailRepository
+import org.company.app.feature.detail.domain.model.DetailItem
 
 /**
- * Stub implementation. Replace with Apollo / Ktor / Room access — the contract in [domain]
+ * Stub implementation. Replace with Apollo / Ktor / Room access — the contract in `domain`
  * stays untouched, so the presentation layer is unaffected.
  */
 class DetailRepositoryImpl : DetailRepository {

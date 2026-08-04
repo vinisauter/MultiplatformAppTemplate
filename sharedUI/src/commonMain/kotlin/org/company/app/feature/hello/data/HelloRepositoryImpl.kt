@@ -3,8 +3,8 @@ package org.company.app.feature.hello.data
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.company.app.feature.hello.domain.HelloMessage
 import org.company.app.feature.hello.domain.HelloRepository
+import org.company.app.feature.hello.domain.model.HelloMessage
 
 /**
  * In-memory implementation of [HelloRepository]. Replace `refresh()` with a Ktor / Apollo call

@@ -30,6 +30,7 @@ Maximize reuse in `commonMain`. Use platform source sets (`androidMain`/`iosMain
 
 - Keep dependency flow unidirectional: `presentation -> domain`, `data -> domain`, and never the reverse.
 - Keep domain models pure and framework-free.
+- Place every domain model `data class`/`value class`/`sealed interface` under `domain/model/` (package suffix `.domain.model`).
 - Route business behavior through explicit use cases.
 - Keep DTO/entity/UI mappings inside their boundary layers.
 - Add or update `commonTest` coverage for behavior changes.

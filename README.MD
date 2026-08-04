@@ -132,6 +132,27 @@ context.md                          Deep technical context
 .template.config                    Per-project flags consumed by CI
 ```
 
+## Clean Architecture layering (inside `kotlin/{{PACKAGE_PATH}}/`)
+
+```
+{{PACKAGE_PATH}}/
+├── feature/
+│   ├── <featureName>/
+│   │   ├── domain/          # definiction of the repository interface and use cases
+│   │   │   └── model/       # Pure Kotlin domain entities/value objects.
+│   │   ├── data/            # Repository IMPLEMENTATIONS.
+│   │   │   ├── remote/      # API clients.
+│   │   │   └── local/       # Local data sources.
+│   │   └── presentation/    # ViewModels (AndroidX) + Compose screens + UiState/UiEvent.
+│   └── common/              # Shared domain/data logic consumed by multiple features.
+│   │   ├── domain/          # definiction of the repository interface and use cases
+│   │   │   └── model/       # Shared domain models reused by 2+ features.
+│   │   └── data/            # Repository shared IMPLEMENTATIONS, API clients, local sources.
+├── navigation/              # App-wide routes and the single NavHost.
+├── di/                      # App-level Koin modules.
+└── theme/                   # Global Compose UI styling.
+```
+
 ## 🤖 ADK 5-layer model
 
 | Layer            | Files                                                       |

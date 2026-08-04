@@ -24,7 +24,7 @@ Agents are automatically configured to follow these rules via `.ai-instructions.
 
 1.  **Maximize `commonMain`**: Logic only moves to platform source sets for hardware/OS entry points.
 2.  **Unidirectional Flow**: UI observes StateFlow from ViewModels; ViewModels execute UseCases; UseCases interact with Repository interfaces.
-3.  **Pure Domain**: The `domain` package must be framework-free (no `@Serializable`, no Compose).
+3.  **Pure Domain**: The `domain` package must be framework-free (no `@Serializable`, no Compose), and domain models must live in `domain/model/`.
 4.  **Native-Safe Testing**: No MockK or Mockito. Use hand-rolled fakes for pure Kotlin and `MockEngine` for Ktor.
 
 ## 🔗 Entry Points for Agents

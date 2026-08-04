@@ -26,23 +26,26 @@ applyTo: "sharedUI/**"
 {{PACKAGE_PATH}}/
 ├── feature/
 │   ├── <featureName>/
-│   │   ├── domain/        # Pure Kotlin: models, repository INTERFACES, use cases.
-│   │   ├── data/          # Repository IMPLEMENTATIONS, API clients, local sources.
-│   │   └── presentation/  # ViewModels (AndroidX) + Compose screens + UiState/UiEvent.
-│   └── common/            # Shared domain/data logic consumed by multiple features.
-│   │   ├── domain/        # Pure shared Kotlin: models, repository INTERFACES, use cases.
-│   │   └── data/          # Repository shared IMPLEMENTATIONS, API clients, local sources.
-├── navigation/            # App-wide routes and the single NavHost.
-├── di/                    # App-level Koin modules.
-└── theme/                 # Global Compose UI styling.
+│   │   ├── domain/          # definiction of the repository interface and use cases
+│   │   │   └── model/       # Pure Kotlin domain entities/value objects.
+│   │   ├── data/            # Repository IMPLEMENTATIONS.
+│   │   │   ├── remote/      # API clients.
+│   │   │   └── local/       # Local data sources.
+│   │   └── presentation/    # ViewModels (AndroidX) + Compose screens + UiState/UiEvent.
+│   └── common/              # Shared domain/data logic consumed by multiple features.
+│   │   ├── domain/          # definiction of the repository interface and use cases
+│   │   │   └── model/       # Shared domain models reused by 2+ features.
+│   │   └── data/            # Repository shared IMPLEMENTATIONS, API clients, local sources.
+├── navigation/              # App-wide routes and the single NavHost.
+├── di/                      # App-level Koin modules.
+└── theme/                   # Global Compose UI styling.
 ```
 
 ## Folder definitions (required)
 
 - Use the `org.company.app` package style and keep feature-specific code under `feature/<featureName>/`. App-wide configurations go in root folders like `navigation/`, `di/`, or `theme/`.
 - `feature/<featureName>/domain/model/` — domain entities and value objects only.
-- `feature/<featureName>/domain/repository/` — repository interfaces only (no implementation details).
-- `feature/<featureName>/domain/usecase/` — one use case per file, named as `VerbNounUseCase`.
+- `feature/<featureName>/domain/` — use cases and repository interface only (no implementation details)
 - `feature/<featureName>/data/repository/` — repository implementations that satisfy domain repository contracts.
 - `feature/<featureName>/data/remote/` — API clients, DTOs, and network mappers.
 - `feature/<featureName>/data/local/` — Room, KStore, and Settings sources plus persistence mappers.
